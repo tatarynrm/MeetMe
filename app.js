@@ -1,22 +1,27 @@
 require("dotenv").config();
-const { Telegraf } = require("telegraf");
+const { Telegraf, Scenes, session } = require("telegraf");
+const bot = new Telegraf(process.env.BOT_TOKEN);
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const http = require("http");
 const app = express();
-const liqpayRouter = require('./routes/liqpay/liqpay')
+const liqpayRouter = require("./routes/liqpay/liqpay");
 const port = 5005;
-const bot = new Telegraf(process.env.BOT_TOKEN);
+
 var LiqPay = require("./my_modules/liqpay/liqpay");
 const { v4: uuidv4 } = require("uuid");
 const pool = require("./db/pool");
 const geolib = require("geolib");
 const iconv = require("iconv-lite");
 const { createUser } = require("./controllers/users");
+
+const registrationScene = require("./scenes/registerScene");
 const public_key = "sandbox_i31110430124";
 const private_key = "sandbox_HJjraXMdCLnz3ApcEJOYCjmSgRjhsjtuvFSVmVci";
 var liqpay = new LiqPay(public_key, private_key);
+
+// stage.register(registrationScene);
 app.use(bodyParser.json({ limit: "30mb", extended: true }));
 app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
 app.use(express.json());
@@ -26,10 +31,14 @@ app.use(
     methods: ["POST", "GET"],
   })
 );
-app.use('/liqpay',liqpayRouter)
+app.use("/liqpay", liqpayRouter);
 
+const stage = new Scenes.Stage([registrationScene]);
 
-const getInvoice = async (amount, username,customer) => {
+bot.use(session());
+bot.use(stage.middleware());
+
+const getInvoice = async (amount, username, customer) => {
   try {
     const invoice = await liqpay.api(
       "request",
@@ -40,10 +49,12 @@ const getInvoice = async (amount, username,customer) => {
         amount: amount,
         currency: "UAH",
         order_id: uuidv4(),
-        description: `Поповнення балансу бота Чистокровнй українець ${username ? username : null}`,
-        server_url:"https://api.noris.tech/liqpay/callback",
-        customer:customer,
-        info:"Оплата преміум підписки Telegram Bot"
+        description: `Поповнення балансу бота Чистокровнй українець ${
+          username ? username : null
+        }`,
+        server_url: "https://api.noris.tech/liqpay/callback",
+        customer: customer,
+        info: "Оплата преміум підписки Telegram Bot",
       },
       function (json) {
         console.log(json.result);
@@ -55,52 +66,94 @@ const getInvoice = async (amount, username,customer) => {
   }
 };
 
-// async function connectToDatabase() {
-//     try {
-//       // Connect to the database
-//       const client = await pool.connect();
-
-//       try {
-//         // Testing the database connection
-//         const result = await client.query('SELECT NOW()');
-//         console.log('Connected to the database at:', result.rows[0].now);
-
-//         // Example query using the pool
-//         const queryResult = await client.query('SELECT * FROM users');
-//         console.log('Query result:', queryResult.rows);
-//       } finally {
-//         // Release the client back to the pool
-//         client.release();
-//       }
-//     } catch (error) {
-//       console.error('Error connecting to the database:', error);
-//     } finally {
-//       // Close the pool (optional, usually it's kept open during the application's lifetime)
-//       pool.end();
-//     }
-//   }
-
-//   // Call the connectToDatabase function to establish the connection and execute queries
-//   connectToDatabase();
-
 bot.start(async (ctx) => {
+  const users = {};
   createUser(ctx.message.from);
 
-  ctx.replyWithHTML("Welcome to your Telegram bot!", {
-    reply_markup: {
-      keyboard: [
-        [{ text: "Мій аккаунт" }],
-        [{ text: "Пошук анкет" }],
-        [{ text: "Преміум 1 тиждень" }],
-        [{ text: "Налаштування" }],
-      ],
-      resize_keyboard: true,
-    },
-  });
+  const userInfo = await pool.query(
+    `select * from users_info where user_id = ${ctx.message.from.id}`
+  );
+  console.log(userInfo);
+  if (userInfo.rows <= 0) {
+    ctx.replyWithHTML(
+      `Вітаю в боті знайомств MeetMe.\nПерший повномасштабний український бот знайомств в телеграмі!`,
+      {
+        reply_markup: {
+          keyboard: [
+            [{ text: "Створити анкету 📒" }],
+            [{ text: "Наше Comunity 👨‍👨‍👧‍👧" }],
+          ],
+          resize_keyboard: true,
+        },
+      }
+    );
+  } else {
+    ctx.replyWithHTML(
+      `Вітаю в боті знайомств MeetMe.\nПерший повномасштабний український бот знайомств в телеграмі!`,
+      {
+        reply_markup: {
+          keyboard: [
+            [{ text: "Мій аккаунт" }],
+            [{ text: "Пошук анкет" }],
+            [{ text: "Преміум 1 тиждень" }],
+            [{ text: "Налаштування" }],
+          ],
+          resize_keyboard: true,
+        },
+      }
+    );
+
+    const userId = ctx.from.id;
+    const referrerId = ctx.message.text.split(" ")[1];
+
+    if (referrerId) {
+      users[userId] = { referrer: referrerId };
+      await ctx.reply(
+        `Вас запросив користувач ${referrerId}\n\nВам надано 2 додаткових ❤️`
+      );
+      const existReferalUsers = await pool.query(
+        `select * from referals where user_id = ${userId} and referer_id =${referrerId}`
+      );
+      if (existReferalUsers.rows > 0) {
+        console.log("exist");
+      }
+      if (existReferalUsers.rows <= 0) {
+        const res = await pool.query(`insert into referals (user_id,referer_id) 
+      values(${userId},${referrerId})
+     `);
+        // ctx.sendMessage(referrerId,`Користувач ${userId} щойно вам надав 2 безкоштовних лайки.Користуйтесь!)`)
+        bot.telegram.sendMessage(
+          referrerId,
+          `Користувач ${userId} щойно вам надав 5 безкоштовних ❤️.Користуйтесь!)`
+        );
+      }
+    } else {
+      users[userId] = { referrer: null };
+      // ctx.reply("Welcome! You have not been referred by anyone.");
+    }
+  }
+
+  // if (userInfo.rows >= 0) {
+  //   ctx.replyWithHTML(`Вітаю в боті знайомств MeetMe.\nПерший повномасштабний український бот знайомств в телеграмі!`, {
+  //     reply_markup: {
+  //       keyboard: [
+  //         [{ text: "Мій аккаунт" }],
+  //         [{ text: "Пошук анкет" }],
+  //         [{ text: "Преміум 1 тиждень" }],
+  //         [{ text: "Налаштування" }],
+  //       ],
+  //       resize_keyboard: true,
+  //     },
+  //   });
+  // }
 });
 
 bot.hears("Преміум 1 тиждень", async (ctx) => {
-  const res = await getInvoice(75, ctx.message.from.username,ctx.message.from.id);
+  const res = await getInvoice(
+    75,
+    ctx.message.from.username,
+    ctx.message.from.id
+  );
   console.log(res);
   ctx.reply("Для оплати тарифного плану, натисніть на кнопку нижче", {
     reply_markup: {
@@ -127,6 +180,13 @@ bot.hears("distance", (ctx) => {
       .toFixed(1)}км`
   );
 });
+
+bot.command("dev", (ctx) => ctx.scene.enter("registrationScene"));
+bot.hears("Заповнити анкету знову", async (ctx) =>
+  {
+    ctx.scene.enter("registrationScene")
+  }
+);
 
 bot.launch();
 
