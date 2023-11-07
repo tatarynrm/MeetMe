@@ -75,6 +75,13 @@ const liqpayCallback = async (req, res) => {
     const el = orderData;
 
 const decodedInfo = stringEncodeFunc(el.info)
+const existPay = db.query(
+  `select * from pay_list where payment_id = ${el.payment_id}`
+);
+console.log("exist pay rows", existPay.rows);
+if (existPay.rows > 0) {
+  return null;
+} 
 if (el.status === 'success') {
   const result =
     await db.query(`INSERT INTO pay_list (payment_id,amount,status,tg_user_id,liqpay_order_id)
