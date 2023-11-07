@@ -26,7 +26,7 @@ app.use(
   })
 );
 app.use('/liqpay',liqpayRouter)
-const getInvoice = async (amount, username) => {
+const getInvoice = async (amount, username,customer) => {
   try {
     const invoice = await liqpay.api(
       "request",
@@ -37,8 +37,10 @@ const getInvoice = async (amount, username) => {
         amount: amount,
         currency: "UAH",
         order_id: uuidv4(),
-        description: `Поповнення балансу бота Чистокровнй українець ${username}`,
-        server_url:"https://api.noris.tech/liqpay/callback"
+        description: `Поповнення балансу бота Чистокровнй українець ${username ? username : null}`,
+        server_url:"https://api.noris.tech/liqpay/callback",
+        customer:customer,
+        info:"Оплата преміум підписки Telegram Bot"
       },
       function (json) {
         console.log(json.result);
@@ -95,7 +97,7 @@ bot.start(async (ctx) => {
 });
 
 bot.hears("Преміум 1 тиждень", async (ctx) => {
-  const res = await getInvoice(75, ctx.message.from.username);
+  const res = await getInvoice(75, ctx.message.from.username,ctx.message.from.id);
   console.log(res);
   ctx.reply("Для оплати тарифного плану, натисніть на кнопку нижче", {
     reply_markup: {

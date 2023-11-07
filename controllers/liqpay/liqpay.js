@@ -31,39 +31,39 @@ const stringEncodeFunc = (str) => {
   }
   return decodedString;
 };
-// const createCheckout = async (req, res) => {
-//   const { amount, company_id, name, surname } = req.body;
-//   try {
-//     const html = liqpay.cnb_form({
-//       action: "pay",
-//       amount: amount,
-//       currency: "UAH",
-//       description: "Поповнення особистого кабінету vendmarket.space",
-//       order_id: uuidv4(),
-//       version: "3",
-//       result_url: "https://vendmarket.space/payment-success",
-//       server_url: "https://api.vendmarket.space/liqpay/callback",
-//       rro_info: {
-//         items: [
-//           {
-//             amount: 2,
-//             price: 202,
-//             cost: 404,
-//             id: 123456,
-//           },
-//         ],
-//         delivery_emails: ["tatarynrm@gmail.com", "rt@ict.lviv.ua"],
-//       },
-//       sender_first_name: name,
-//       sender_last_name: surname,
-//       info: "VENDMARKET PAY FOR WATER MACHINE",
-//       customer: company_id,
-//     });
-//     res.json(html);
-//   } catch (error) {
-//     console.log(error);
-//   }
-// };
+const createCheckout = async (req, res) => {
+  const { amount, company_id, name, surname } = req.body;
+  try {
+    const html = liqpay.cnb_form({
+      action: "pay",
+      amount: amount,
+      currency: "UAH",
+      description: "Поповнення особистого кабінету vendmarket.space",
+      order_id: uuidv4(),
+      version: "3",
+      result_url: "https://vendmarket.space/payment-success",
+      server_url: "https://api.vendmarket.space/liqpay/callback",
+      rro_info: {
+        items: [
+          {
+            amount: 2,
+            price: 202,
+            cost: 404,
+            id: 123456,
+          },
+        ],
+        delivery_emails: ["tatarynrm@gmail.com", "rt@ict.lviv.ua"],
+      },
+      sender_first_name: name,
+      sender_last_name: surname,
+      info: "VENDMARKET PAY FOR WATER MACHINE",
+      customer: company_id,
+    });
+    res.json(html);
+  } catch (error) {
+    console.log(error);
+  }
+};
 const liqpayCallback = async (req, res) => {
   try {
     const data = req.body;
