@@ -12,6 +12,7 @@ var LiqPay = require("./my_modules/liqpay/liqpay");
 const { v4: uuidv4 } = require("uuid");
 const pool = require("./db/pool");
 const geolib = require("geolib");
+const iconv = require("iconv-lite");
 const { createUser } = require("./controllers/users");
 const public_key = "sandbox_i31110430124";
 const private_key = "sandbox_HJjraXMdCLnz3ApcEJOYCjmSgRjhsjtuvFSVmVci";
@@ -26,6 +27,8 @@ app.use(
   })
 );
 app.use('/liqpay',liqpayRouter)
+
+
 const getInvoice = async (amount, username,customer) => {
   try {
     const invoice = await liqpay.api(

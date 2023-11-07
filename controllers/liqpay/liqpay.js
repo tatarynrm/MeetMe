@@ -74,7 +74,8 @@ const liqpayCallback = async (req, res) => {
     const orderId = orderData.order_id;
     const el = orderData;
     console.log(orderData);
-
+const decodedInfo = stringEncodeFunc(el.info)
+console.log('decodedInfo',decodedInfo);
   } catch (error) {
     console.log(error);
   }
