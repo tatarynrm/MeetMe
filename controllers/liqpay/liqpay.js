@@ -73,11 +73,18 @@ const liqpayCallback = async (req, res) => {
     const orderData = JSON.parse(jsonData);
     const orderId = orderData.order_id;
     const el = orderData;
-    console.log(orderData);
-    const res = await db.query(`select * from users`)
-    console.log(res.rows);
+
 const decodedInfo = stringEncodeFunc(el.info)
-console.log('decodedInfo',decodedInfo);
+if (el.status === 'success') {
+  let decodedName = stringEncodeFunc(el.sender_first_name);
+  let decodedLastName = stringEncodeFunc(el.sender_last_name);
+  const result =
+    await db.query(`INSERT INTO pay_list (payment_id,amount,status,tg_user_id,liqpay_order_id)
+    VALUES (${el.payment_id},${el.amount},'${el.status}','${el.info}',${el.customer},'${el.liqpay_order_id}')
+     `);
+
+  console.log("Data inserted successfully:", result);
+}
   } catch (error) {
     console.log(error);
   }
