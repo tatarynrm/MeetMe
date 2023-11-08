@@ -17,13 +17,12 @@ const rootPath = process.cwd();
 const registrationScene = new Scenes.WizardScene(
   "registrationScene",
   (ctx) => {
-    console.log(fullPath);
     ctx.reply(`Напишіть своє ім'я:`, {
       reply_markup: { remove_keyboard: true },
     });
     return ctx.wizard.next();
   },
-  (ctx) => {
+  async (ctx) => {
     const name = ctx.message.text;
     userData.name = name;
     ctx.reply(`Чудово! Тепер вкажіть свій вік:`);
@@ -53,15 +52,18 @@ const registrationScene = new Scenes.WizardScene(
     });
     return ctx.wizard.next();
   },
-  (ctx) => {
+  async (ctx) => {
     const sex = ctx.message.text;
     if (sex === "Я хлопець") {
       userData.sex = "M";
-    }
-    if (sex === "Я дівчина") {
+    } else if (sex === "Я дівчина") {
       userData.sex = "W";
+    } else {
+      await ctx.reply("Немає такої відповіді)");
+      return;
     }
-    ctx.reply(`Кого ви шукаєте?`, {
+
+    await ctx.reply(`Кого ви шукаєте?`, {
       reply_markup: {
         keyboard: [
           [{ text: "Хлопця" }, { text: "Дівчину" }, { text: "Без різниці" }],
@@ -71,17 +73,18 @@ const registrationScene = new Scenes.WizardScene(
     });
     return ctx.wizard.next();
   },
-  (ctx) => {
+  async (ctx) => {
     const looking = ctx.message.text;
     if (looking === "Хлопця") {
       userData.looking = "M";
-    }
-    if (looking === "Дівчину") {
-      userData.looking = "W";
-    }
-    if (looking === "Без різниці") {
+    } else if (looking === "Дівчину") {
+    } else if (looking === "Без різниці") {
       userData.looking = "ALL";
+    } else {
+      await ctx.reply("Немає такої відповіді)");
+      return;
     }
+
     ctx.reply(`Опишіть себе!`, { reply_markup: { remove_keyboard: true } });
     return ctx.wizard.next();
   },
@@ -224,7 +227,7 @@ const registrationScene = new Scenes.WizardScene(
         "Ви можете надіслати максимум 1 фото (не відео і не гіф) або натиснути кнопку Завершити реєстрацію"
       );
     }
-  },
+  }
 );
 
 module.exports = registrationScene;

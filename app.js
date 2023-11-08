@@ -79,7 +79,7 @@ bot.start(async (ctx) => {
   const userInfo = await pool.query(
     `select * from users_info where user_id = ${ctx.message.from.id}`
   );
-  console.log(userInfo);
+  
   if (userInfo.rows <= 0) {
     ctx.replyWithHTML(
       `Вітаю в боті знайомств MeetMe.\nПерший повномасштабний український бот знайомств в телеграмі!`,
@@ -112,7 +112,7 @@ bot.start(async (ctx) => {
   }
   const userId = ctx.from.id;
   const referrerId = ctx.message.text.split(" ")[1];
-  console.log(users);
+
   if (referrerId) {
     users[userId] = { referrer: referrerId };
     await ctx.reply(
@@ -136,21 +136,7 @@ bot.start(async (ctx) => {
     }
   } else {
     users[userId] = { referrer: null };
-    // ctx.reply("Welcome! You have not been referred by anyone.");
   }
-  // if (userInfo.rows >= 0) {
-  //   ctx.replyWithHTML(`Вітаю в боті знайомств MeetMe.\nПерший повномасштабний український бот знайомств в телеграмі!`, {
-  //     reply_markup: {
-  //       keyboard: [
-  //         [{ text: "Мій аккаунт" }],
-  //         [{ text: "Пошук анкет" }],
-  //         [{ text: "Преміум 1 тиждень" }],
-  //         [{ text: "Налаштування" }],
-  //       ],
-  //       resize_keyboard: true,
-  //     },
-  //   });
-  // }
 });
 
 bot.hears("Преміум 1 тиждень", async (ctx) => {
@@ -159,7 +145,7 @@ bot.hears("Преміум 1 тиждень", async (ctx) => {
     ctx.message.from.username,
     ctx.message.from.id
   );
-  console.log(res);
+ 
   ctx.reply("Для оплати тарифного плану, натисніть на кнопку нижче", {
     reply_markup: {
       inline_keyboard: [
@@ -187,6 +173,7 @@ bot.hears("distance", (ctx) => {
 });
 let profiles = [];
 let currentProfileIndex = 0;
+let like = { user: null };
 bot.command("dev", (ctx) => ctx.scene.enter("registrationScene"));
 bot.hears("Заповнити анкету знову", async (ctx) => {
   ctx.scene.enter("registrationScene");
@@ -194,28 +181,16 @@ bot.hears("Заповнити анкету знову", async (ctx) => {
 bot.hears("Створити анкету 📒", async (ctx) => {
   ctx.scene.enter("registrationScene");
 });
-// bot.hears("Дивитись анкети 👀", async (ctx,next) => {
-//   ctx.scene.enter("likesScene");
-//   ctx.session.index = 0;
-//   return next()
-//   // const index = 0
-//   // ctx.reply('dsadsa',{})
-// });
-
-// let profiles = [
-//   { name: "Profile 1", age: 25 },
-//   { name: "Profile 2", age: 30 },
-//   { name: "Profile 3", age: 28 },
-//   // Додайте інші анкети за потреби
-// ];
 
 bot.hears("Дивитись анкети 👀", async (ctx) => {
   const profiles1 = await pool.query(`
  SELECT a.*, b.photo_url
  FROM users_info AS a
  LEFT JOIN users_photos AS b
- ON a.user_id = b.user_id;`);
-  console.log(profiles1.rows);
+ ON a.user_id = b.user_id 
+ where a.user_id != ${ctx.message.from.id}
+ `);
+
   const usersProfile = profiles1.rows;
   if (usersProfile.length > 0) {
     profiles.push(...usersProfile);
@@ -227,7 +202,7 @@ bot.hears("Дивитись анкети 👀", async (ctx) => {
     ctx.reply("No more profiles available.");
   }
 });
-async function sendProfile(ctx) {
+async function sendProfile(ctx, like) {
   const currentProfile = profiles[currentProfileIndex];
   const message = `Name: ${currentProfile.name}\nAge: ${currentProfile.age}`;
   // const message = `Na323`;
@@ -235,10 +210,12 @@ async function sendProfile(ctx) {
   //   Markup.button.callback("Like", "like"),
   //   Markup.button.callback("Dislike", "dislike"),
   // ]);
+
   const keyboard = Markup.inlineKeyboard([
     Markup.button.callback("Option 1", "option1"),
     Markup.button.callback("Option 2", "option2"),
   ]);
+
   const photoUrl =
     "https://static-ssl.businessinsider.com/image/5cc86f31768b3e05177244e3-2400/shutterstock1093218185.jp2";
   await ctx.replyWithPhoto(
@@ -259,12 +236,32 @@ async function sendProfile(ctx) {
 }
 
 bot.hears("❤️", async (ctx) => {
+  const prevUser = profiles[currentProfileIndex - 1];
   // Оновіть інформацію в базі даних для поточної анкети як лайк
   const currentProfile = profiles[currentProfileIndex - 1];
 
-  // Відправка наступної анкети
+  if (!prevUser?.user_id || prevUser.user_id === null) {
+    return null
+  }else {
+    const res = await pool.query(`
+    INSERT INTO users_likes (user_id1, user_id2, like_1, like_2, created_at)
+    VALUES (${ctx.message.from.id}, ${prevUser.user_id}, 1, 0, NOW());
+     `);
+     ctx.telegram.sendMessage(
+       prevUser.user_id,
+       "Схоже вами хтось зацікавився.Подивіться хто вас лайкнув!",
+       {
+         reply_markup: {
+           keyboard: [[{ text: "Подивитись хто мене лайкнув" }]],
+           resize_keyboard: true,
+         },
+       }
+     );
+  }
+
+  //   Відправка наступної анкети
   if (currentProfileIndex < profiles.length) {
-    sendProfile(ctx);
+    sendProfile(ctx, (like = 1));
   } else {
     ctx.reply("Більше немає анкет для перегляду", {
       reply_markup: {
@@ -284,11 +281,11 @@ bot.hears("❤️", async (ctx) => {
 bot.hears("👎", async (ctx) => {
   // Оновіть інформацію в базі даних для поточної анкети як дизлайк
   const currentProfile = profiles[currentProfileIndex - 1];
-  await ctx.reply(`You disliked ${currentProfile.name}'s profile.`);
+  // await ctx.reply(`You disliked ${currentProfile.name}'s profile.`);
 
   // Відправка наступної анкети
   if (currentProfileIndex < profiles.length) {
-    sendProfile(ctx);
+    sendProfile(ctx, (like = 0));
   } else {
     ctx.reply("Більше немає анкет для перегляду", {
       reply_markup: {
@@ -305,9 +302,11 @@ bot.hears("👎", async (ctx) => {
   }
 });
 
-bot.hears('Реферальне посилання',async ctx =>{
-  await ctx.reply(`Ваше реферальне посилання:\nhttps://t.me/noris_chat_bot?start=${ctx.message.from.id}`)
-})
+bot.hears("Реферальне посилання", async (ctx) => {
+  await ctx.reply(
+    `Ваше реферальне посилання:\nhttps://t.me/noris_chat_bot?start=${ctx.message.from.id}`
+  );
+});
 bot.launch();
 // Enable graceful stop
 process.once("SIGINT", () => bot.stop("SIGINT"));

@@ -48,7 +48,7 @@ async function createUser(user) {
     
     } finally {
       // Release the client back to the pool
-      client.release();
+      // client.release();
     }
   } catch (error) {
     console.error("Error inserting data:", error);
