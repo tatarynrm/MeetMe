@@ -9,6 +9,7 @@ const app = express();
 const liqpayRouter = require("./routes/liqpay/liqpay");
 const port = 5005;
 
+
 var LiqPay = require("./my_modules/liqpay/liqpay");
 const { v4: uuidv4 } = require("uuid");
 const pool = require("./db/pool");
@@ -25,6 +26,8 @@ var liqpay = new LiqPay(public_key, private_key);
 app.use(bodyParser.json({ limit: "30mb", extended: true }));
 app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
 app.use(express.json());
+app.use('/img',express.static('img'));
+app.use('/downloads',express.static('downloads'));
 app.use(
   cors({
     origin: "*",
@@ -65,9 +68,9 @@ const getInvoice = async (amount, username, customer) => {
     console.log(error);
   }
 };
-
+const users = {};
 bot.start(async (ctx) => {
-  const users = {};
+
   createUser(ctx.message.from);
 
   const userInfo = await pool.query(
@@ -82,6 +85,7 @@ bot.start(async (ctx) => {
           keyboard: [
             [{ text: "Створити анкету 📒" }],
             [{ text: "Наше Comunity 👨‍👨‍👧‍👧" }],
+ 
           ],
           resize_keyboard: true,
         },
@@ -94,45 +98,44 @@ bot.start(async (ctx) => {
         reply_markup: {
           keyboard: [
             [{ text: "Мій аккаунт" }],
-            [{ text: "Пошук анкет" }],
-            [{ text: "Преміум 1 тиждень" }],
+            // [{ text: "Пошук анкет" }],
+            // [{ text: "Преміум 1 тиждень" }],
             [{ text: "Налаштування" }],
+            [{ text: "Заповнити анкету знову" }],
           ],
           resize_keyboard: true,
         },
       }
     );
-
-    const userId = ctx.from.id;
-    const referrerId = ctx.message.text.split(" ")[1];
-
-    if (referrerId) {
-      users[userId] = { referrer: referrerId };
-      await ctx.reply(
-        `Вас запросив користувач ${referrerId}\n\nВам надано 2 додаткових ❤️`
-      );
-      const existReferalUsers = await pool.query(
-        `select * from referals where user_id = ${userId} and referer_id =${referrerId}`
-      );
-      if (existReferalUsers.rows > 0) {
-        console.log("exist");
-      }
-      if (existReferalUsers.rows <= 0) {
-        const res = await pool.query(`insert into referals (user_id,referer_id) 
-      values(${userId},${referrerId})
-     `);
-        // ctx.sendMessage(referrerId,`Користувач ${userId} щойно вам надав 2 безкоштовних лайки.Користуйтесь!)`)
-        bot.telegram.sendMessage(
-          referrerId,
-          `Користувач ${userId} щойно вам надав 5 безкоштовних ❤️.Користуйтесь!)`
-        );
-      }
-    } else {
-      users[userId] = { referrer: null };
-      // ctx.reply("Welcome! You have not been referred by anyone.");
-    }
   }
-
+  const userId = ctx.from.id;
+  const referrerId = ctx.message.text.split(" ")[1];
+console.log(users);
+  if (referrerId) {
+    users[userId] = { referrer: referrerId };
+    await ctx.reply(
+      `Вас запросив користувач ${referrerId}\n\nВам надано 2 додаткових ❤️`
+    );
+    const existReferalUsers = await pool.query(
+      `select * from referals where user_id = ${userId} and referer_id =${referrerId}`
+    );
+    if (existReferalUsers.rows > 0) {
+      console.log("exist");
+    }
+    if (existReferalUsers.rows <= 0) {
+      const res = await pool.query(`insert into referals (user_id,referer_id) 
+    values(${userId},${referrerId})
+   `);
+      // ctx.sendMessage(referrerId,`Користувач ${userId} щойно вам надав 2 безкоштовних лайки.Користуйтесь!)`)
+      bot.telegram.sendMessage(
+        referrerId,
+        `Користувач ${userId} щойно вам надав 5 безкоштовних ❤️.Користуйтесь!)`
+      );
+    }
+  } else {
+    users[userId] = { referrer: null };
+    // ctx.reply("Welcome! You have not been referred by anyone.");
+  }
   // if (userInfo.rows >= 0) {
   //   ctx.replyWithHTML(`Вітаю в боті знайомств MeetMe.\nПерший повномасштабний український бот знайомств в телеграмі!`, {
   //     reply_markup: {
@@ -187,17 +190,29 @@ bot.hears("Заповнити анкету знову", async (ctx) =>
     ctx.scene.enter("registrationScene")
   }
 );
+bot.hears("Створити анкету 📒", async (ctx) =>
+  {
+    ctx.scene.enter("registrationScene")
+  }
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 bot.launch();
-
 // Enable graceful stop
 process.once("SIGINT", () => bot.stop("SIGINT"));
 process.once("SIGTERM", () => bot.stop("SIGTERM"));
-
-app.get("/", (req, res) => {
-  res.send("Hello World!");
-});
-
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
