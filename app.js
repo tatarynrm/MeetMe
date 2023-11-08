@@ -79,7 +79,7 @@ bot.start(async (ctx) => {
   const userInfo = await pool.query(
     `select * from users_info where user_id = ${ctx.message.from.id}`
   );
-  
+
   if (userInfo.rows <= 0) {
     ctx.replyWithHTML(
       `Вітаю в боті знайомств MeetMe.\nПерший повномасштабний український бот знайомств в телеграмі!`,
@@ -99,11 +99,8 @@ bot.start(async (ctx) => {
       {
         reply_markup: {
           keyboard: [
-            [{ text: "Мій аккаунт" }],
-            [{ text: "Дивитись анкети 👀" }],
-            [{ text: "Налаштування" }],
-            [{ text: "Реферальне посилання" }],
-            [{ text: "Заповнити анкету знову" }],
+            [{ text: "🔑 Мій аккаунт" },{ text: "👀 Дивитись анкети" }],
+            [{ text: "💰 Реферальне посилання" },{ text: "🔄 Заповнити анкету знову" }],
           ],
           resize_keyboard: true,
         },
@@ -145,7 +142,7 @@ bot.hears("Преміум 1 тиждень", async (ctx) => {
     ctx.message.from.username,
     ctx.message.from.id
   );
- 
+
   ctx.reply("Для оплати тарифного плану, натисніть на кнопку нижче", {
     reply_markup: {
       inline_keyboard: [
@@ -175,14 +172,14 @@ let profiles = [];
 let currentProfileIndex = 0;
 let like = { user: null };
 bot.command("dev", (ctx) => ctx.scene.enter("registrationScene"));
-bot.hears("Заповнити анкету знову", async (ctx) => {
+bot.hears("🔄 Заповнити анкету знову", async (ctx) => {
   ctx.scene.enter("registrationScene");
 });
 bot.hears("Створити анкету 📒", async (ctx) => {
   ctx.scene.enter("registrationScene");
 });
 
-bot.hears("Дивитись анкети 👀", async (ctx) => {
+bot.hears("👀 Дивитись анкети", async (ctx) => {
   const profiles1 = await pool.query(`
  SELECT a.*, b.photo_url
  FROM users_info AS a
@@ -241,22 +238,22 @@ bot.hears("❤️", async (ctx) => {
   const currentProfile = profiles[currentProfileIndex - 1];
 
   if (!prevUser?.user_id || prevUser.user_id === null) {
-    return null
-  }else {
+    return null;
+  } else {
     const res = await pool.query(`
     INSERT INTO users_likes (user_id1, user_id2, like_1, like_2, created_at)
     VALUES (${ctx.message.from.id}, ${prevUser.user_id}, 1, 0, NOW());
      `);
-     ctx.telegram.sendMessage(
-       prevUser.user_id,
-       "Схоже вами хтось зацікавився.Подивіться хто вас лайкнув!",
-       {
-         reply_markup: {
-           keyboard: [[{ text: "Подивитись хто мене лайкнув" }]],
-           resize_keyboard: true,
-         },
-       }
-     );
+    ctx.telegram.sendMessage(
+      prevUser.user_id,
+      "Схоже вами хтось зацікавився.Подивіться хто вас лайкнув!",
+      {
+        reply_markup: {
+          keyboard: [[{ text: "Подивитись хто мене лайкнув" }]],
+          resize_keyboard: true,
+        },
+      }
+    );
   }
 
   //   Відправка наступної анкети
@@ -266,11 +263,8 @@ bot.hears("❤️", async (ctx) => {
     ctx.reply("Більше немає анкет для перегляду", {
       reply_markup: {
         keyboard: [
-          [{ text: "Мій аккаунт" }],
-          [{ text: "Дивитись анкети 👀" }],
-          [{ text: "Налаштування" }],
-          [{ text: "Реферальне посилання" }],
-          [{ text: "Заповнити анкету знову" }],
+          [{ text: "🔑 Мій аккаунт" },{ text: "👀 Дивитись анкети" }],
+          [{ text: "💰 Реферальне посилання" },{ text: "🔄 Заповнити анкету знову" }],
         ],
         resize_keyboard: true,
       },
@@ -290,11 +284,8 @@ bot.hears("👎", async (ctx) => {
     ctx.reply("Більше немає анкет для перегляду", {
       reply_markup: {
         keyboard: [
-          [{ text: "Мій аккаунт" }],
-          [{ text: "Дивитись анкети 👀" }],
-          [{ text: "Налаштування" }],
-          [{ text: "Реферальне посилання" }],
-          [{ text: "Заповнити анкету знову" }],
+          [{ text: "🔑 Мій аккаунт" },{ text: "👀 Дивитись анкети" }],
+          [{ text: "💰 Реферальне посилання" },{ text: "🔄 Заповнити анкету знову" }],
         ],
         resize_keyboard: true,
       },
@@ -302,11 +293,67 @@ bot.hears("👎", async (ctx) => {
   }
 });
 
-bot.hears("Реферальне посилання", async (ctx) => {
+bot.hears("💰 Реферальне посилання", async (ctx) => {
   await ctx.reply(
     `Ваше реферальне посилання:\nhttps://t.me/noris_chat_bot?start=${ctx.message.from.id}`
   );
 });
+
+bot.hears("🔑 Мій аккаунт", async (ctx) => {
+  const myAcc = await pool.query(`
+  SELECT a.*, b.photo_url
+  FROM users_info AS a
+  LEFT JOIN users_photos AS b ON a.user_id = b.user_id
+  WHERE a.user_id = ${ctx.message.from.id};
+  `);
+  const me = myAcc.rows[0];
+  console.log(me);
+  const message = `👤Ім'я: ${me.name}\n\n🕐Вік: ${me.age}\n\n💁Інфа: ${me.text}`;
+  await ctx.replyWithPhoto(
+    {
+      url: me.photo_url,
+    },
+    {
+      caption: message,
+      reply_markup: {
+        keyboard: [
+          [{ text: "⚙ Налаштування" }],
+          [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
+          [{ text: "⬅️ Назад" }],
+        ],
+        resize_keyboard: true,
+      },
+    }
+  );
+});
+
+bot.hears("⬅️ Назад", async (ctx) => {
+  await ctx.reply("🔑 Мій аккаунт", {
+    reply_markup: {
+      keyboard: [
+        [{ text: "🔑 Мій аккаунт" },{ text: "👀 Дивитись анкети" }],
+        [{ text: "💰 Реферальне посилання" },{ text: "🔄 Заповнити анкету знову" }],
+  
+      ],
+      resize_keyboard: true,
+    },
+  });
+});
+bot.hears("⚙ Налаштування", async (ctx) => {
+  await ctx.reply("⚙ Налаштування", {
+    reply_markup: {
+      keyboard: [
+        [{ text: "🔸Змінити ім'я" }],
+        [{ text: "🔸Змінити вік" }],
+        [{ text: "🔸Змінити інфо про себе"}],
+        [{ text: "🔄 Заповнити анкету знову" }],
+        [{ text: "⬅️ Назад" }],
+      ],
+      resize_keyboard: true,
+    },
+  });
+});
+
 bot.launch();
 // Enable graceful stop
 process.once("SIGINT", () => bot.stop("SIGINT"));
