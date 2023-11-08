@@ -1,5 +1,5 @@
 require("dotenv").config();
-const { Telegraf, Scenes, session } = require("telegraf");
+const { Telegraf, Scenes, session, Markup } = require("telegraf");
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -9,7 +9,6 @@ const app = express();
 const liqpayRouter = require("./routes/liqpay/liqpay");
 const port = 5005;
 
-
 var LiqPay = require("./my_modules/liqpay/liqpay");
 const { v4: uuidv4 } = require("uuid");
 const pool = require("./db/pool");
@@ -18,6 +17,7 @@ const iconv = require("iconv-lite");
 const { createUser } = require("./controllers/users");
 
 const registrationScene = require("./scenes/registerScene");
+const likesScene = require("./scenes/likesScene");
 const public_key = "sandbox_i31110430124";
 const private_key = "sandbox_HJjraXMdCLnz3ApcEJOYCjmSgRjhsjtuvFSVmVci";
 var liqpay = new LiqPay(public_key, private_key);
@@ -26,8 +26,8 @@ var liqpay = new LiqPay(public_key, private_key);
 app.use(bodyParser.json({ limit: "30mb", extended: true }));
 app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
 app.use(express.json());
-app.use('/img',express.static('img'));
-app.use('/downloads',express.static('downloads'));
+app.use("/img", express.static("img"));
+app.use("/downloads", express.static("downloads"));
 app.use(
   cors({
     origin: "*",
@@ -36,11 +36,15 @@ app.use(
 );
 app.use("/liqpay", liqpayRouter);
 
-const stage = new Scenes.Stage([registrationScene]);
+const stage = new Scenes.Stage([registrationScene, likesScene]);
 
 bot.use(session());
 bot.use(stage.middleware());
-
+bot.use((ctx, next) => {
+  ctx.session.myIndex = 0;
+  return next();
+});
+global.currentProfileIndex = 0;
 const getInvoice = async (amount, username, customer) => {
   try {
     const invoice = await liqpay.api(
@@ -70,7 +74,6 @@ const getInvoice = async (amount, username, customer) => {
 };
 const users = {};
 bot.start(async (ctx) => {
-
   createUser(ctx.message.from);
 
   const userInfo = await pool.query(
@@ -85,7 +88,6 @@ bot.start(async (ctx) => {
           keyboard: [
             [{ text: "Створити анкету 📒" }],
             [{ text: "Наше Comunity 👨‍👨‍👧‍👧" }],
- 
           ],
           resize_keyboard: true,
         },
@@ -98,6 +100,7 @@ bot.start(async (ctx) => {
         reply_markup: {
           keyboard: [
             [{ text: "Мій аккаунт" }],
+            [{ text: "Дивитись анкети 👀" }],
             // [{ text: "Пошук анкет" }],
             // [{ text: "Преміум 1 тиждень" }],
             [{ text: "Налаштування" }],
@@ -110,7 +113,7 @@ bot.start(async (ctx) => {
   }
   const userId = ctx.from.id;
   const referrerId = ctx.message.text.split(" ")[1];
-console.log(users);
+  console.log(users);
   if (referrerId) {
     users[userId] = { referrer: referrerId };
     await ctx.reply(
@@ -183,31 +186,103 @@ bot.hears("distance", (ctx) => {
       .toFixed(1)}км`
   );
 });
-
+let profiles = [];
+let currentProfileIndex = 0;
 bot.command("dev", (ctx) => ctx.scene.enter("registrationScene"));
-bot.hears("Заповнити анкету знову", async (ctx) =>
-  {
-    ctx.scene.enter("registrationScene")
+bot.hears("Заповнити анкету знову", async (ctx) => {
+  ctx.scene.enter("registrationScene");
+});
+bot.hears("Створити анкету 📒", async (ctx) => {
+  ctx.scene.enter("registrationScene");
+});
+// bot.hears("Дивитись анкети 👀", async (ctx,next) => {
+//   ctx.scene.enter("likesScene");
+//   ctx.session.index = 0;
+//   return next()
+//   // const index = 0
+//   // ctx.reply('dsadsa',{})
+// });
+
+// let profiles = [
+//   { name: "Profile 1", age: 25 },
+//   { name: "Profile 2", age: 30 },
+//   { name: "Profile 3", age: 28 },
+//   // Додайте інші анкети за потреби
+// ];
+
+bot.hears("Дивитись анкети 👀", async (ctx) => {
+  const profiles1 = await pool.query(`
+ SELECT a.*, b.photo_url
+ FROM users_info AS a
+ LEFT JOIN users_photos AS b
+ ON a.user_id = b.user_id;`);
+  console.log(profiles1.rows);
+  const usersProfile = profiles1.rows;
+  if (usersProfile.length > 0) {
+    profiles.push(...usersProfile);
   }
-);
-bot.hears("Створити анкету 📒", async (ctx) =>
-  {
-    ctx.scene.enter("registrationScene")
+
+  if (currentProfileIndex < profiles.length) {
+    sendProfile(ctx);
+  } else {
+    ctx.reply("No more profiles available.");
   }
-);
+});
+async function sendProfile(ctx) {
+  const currentProfile = profiles[currentProfileIndex];
+  const message = `Name: ${currentProfile.name}\nAge: ${currentProfile.age}`;
+  // const message = `Na323`;
+  // const replyMarkup = Markup.inlineKeyboard([
+  //   Markup.button.callback("Like", "like"),
+  //   Markup.button.callback("Dislike", "dislike"),
+  // ]);
+  const keyboard = Markup.inlineKeyboard([
+    Markup.button.callback("Option 1", "option1"),
+    Markup.button.callback("Option 2", "option2"),
+  ]);
+  const photoUrl =
+    "https://static-ssl.businessinsider.com/image/5cc86f31768b3e05177244e3-2400/shutterstock1093218185.jp2";
+  await ctx.replyWithPhoto(
+    {
+      url: "https://static-ssl.businessinsider.com/image/5cc86f31768b3e05177244e3-2400/shutterstock1093218185.jp2",
+    },
+    {
+      caption: message,
+      reply_markup: {
+        keyboard: [[{ text: "❤️" },{text:"👎"}]],
+        resize_keyboard: true,
+      },
+    }
+  );
 
+  // Інкрементуємо currentProfileIndex для відправки наступної анкети
+  currentProfileIndex++;
+}
 
+bot.hears("❤️", async (ctx) => {
+  // Оновіть інформацію в базі даних для поточної анкети як лайк
+  const currentProfile = profiles[currentProfileIndex - 1];
 
+  // Відправка наступної анкети
+  if (currentProfileIndex < profiles.length) {
+    sendProfile(ctx);
+  } else {
+    ctx.reply("Більше немає анкет для перегляду");
+  }
+});
 
+bot.hears("👎", async (ctx) => {
+  // Оновіть інформацію в базі даних для поточної анкети як дизлайк
+  const currentProfile = profiles[currentProfileIndex - 1];
+  await ctx.reply(`You disliked ${currentProfile.name}'s profile.`);
 
-
-
-
-
-
-
-
-
+  // Відправка наступної анкети
+  if (currentProfileIndex < profiles.length) {
+    sendProfile(ctx);
+  } else {
+    ctx.reply("No more profiles available.");
+  }
+});
 
 bot.launch();
 // Enable graceful stop
@@ -216,3 +291,7 @@ process.once("SIGTERM", () => bot.stop("SIGTERM"));
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
+
+module.exports = {
+  bot,
+};
