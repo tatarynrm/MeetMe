@@ -101,9 +101,8 @@ bot.start(async (ctx) => {
           keyboard: [
             [{ text: "Мій аккаунт" }],
             [{ text: "Дивитись анкети 👀" }],
-            // [{ text: "Пошук анкет" }],
-            // [{ text: "Преміум 1 тиждень" }],
             [{ text: "Налаштування" }],
+            [{ text: "Реферальне посилання" }],
             [{ text: "Заповнити анкету знову" }],
           ],
           resize_keyboard: true,
@@ -249,7 +248,7 @@ async function sendProfile(ctx) {
     {
       caption: message,
       reply_markup: {
-        keyboard: [[{ text: "❤️" },{text:"👎"}]],
+        keyboard: [[{ text: "❤️" }, { text: "👎" }]],
         resize_keyboard: true,
       },
     }
@@ -267,7 +266,18 @@ bot.hears("❤️", async (ctx) => {
   if (currentProfileIndex < profiles.length) {
     sendProfile(ctx);
   } else {
-    ctx.reply("Більше немає анкет для перегляду");
+    ctx.reply("Більше немає анкет для перегляду", {
+      reply_markup: {
+        keyboard: [
+          [{ text: "Мій аккаунт" }],
+          [{ text: "Дивитись анкети 👀" }],
+          [{ text: "Налаштування" }],
+          [{ text: "Реферальне посилання" }],
+          [{ text: "Заповнити анкету знову" }],
+        ],
+        resize_keyboard: true,
+      },
+    });
   }
 });
 
@@ -280,10 +290,24 @@ bot.hears("👎", async (ctx) => {
   if (currentProfileIndex < profiles.length) {
     sendProfile(ctx);
   } else {
-    ctx.reply("No more profiles available.");
+    ctx.reply("Більше немає анкет для перегляду", {
+      reply_markup: {
+        keyboard: [
+          [{ text: "Мій аккаунт" }],
+          [{ text: "Дивитись анкети 👀" }],
+          [{ text: "Налаштування" }],
+          [{ text: "Реферальне посилання" }],
+          [{ text: "Заповнити анкету знову" }],
+        ],
+        resize_keyboard: true,
+      },
+    });
   }
 });
 
+bot.hears('Реферальне посилання',async ctx =>{
+  await ctx.reply(`Ваше реферальне посилання:\nhttps://t.me/noris_chat_bot?start=${ctx.message.from.id}`)
+})
 bot.launch();
 // Enable graceful stop
 process.once("SIGINT", () => bot.stop("SIGINT"));
