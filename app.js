@@ -244,7 +244,7 @@ async function sendProfile(ctx) {
     "https://static-ssl.businessinsider.com/image/5cc86f31768b3e05177244e3-2400/shutterstock1093218185.jp2";
   await ctx.replyWithPhoto(
     {
-      url: "https://static-ssl.businessinsider.com/image/5cc86f31768b3e05177244e3-2400/shutterstock1093218185.jp2",
+      url: currentProfile.photo_url,
     },
     {
       caption: message,
