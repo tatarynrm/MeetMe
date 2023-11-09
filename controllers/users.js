@@ -45,7 +45,6 @@ async function createUser(user) {
       console.log("Data inserted successfully");
       }
         
-    
     } finally {
       // Release the client back to the pool
       // client.release();
