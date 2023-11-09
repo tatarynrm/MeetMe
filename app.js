@@ -24,8 +24,8 @@ const private_key = "sandbox_HJjraXMdCLnz3ApcEJOYCjmSgRjhsjtuvFSVmVci";
 var liqpay = new LiqPay(public_key, private_key);
 
 // stage.register(registrationScene);
-app.use(bodyParser.json({ limit: "30mb", extended: true }));
-app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
+app.use(bodyParser.json({ limit: "60mb", extended: true }));
+app.use(bodyParser.urlencoded({ limit: "60mb", extended: true }));
 app.use(express.json());
 app.use("/img", express.static("img"));
 app.use("/downloads", express.static("downloads"));
