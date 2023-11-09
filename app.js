@@ -203,7 +203,7 @@ bot.hears("👀 Дивитись анкети", async (ctx) => {
 });
 async function sendProfile(ctx, like) {
   const currentProfile = profiles[currentProfileIndex];
-  const message = `Name: ${currentProfile.name}\nAge: ${currentProfile.age}`;
+  const message = `Name: ${currentProfile.name}\nAge: ${currentProfile.age}\nInfo: ${currentProfile.text}`;
   console.log(currentProfile);
   const keyboard = Markup.inlineKeyboard([
     Markup.button.callback("Option 1", "option1"),
