@@ -8,7 +8,7 @@ const http = require("http");
 const app = express();
 const liqpayRouter = require("./routes/liqpay/liqpay");
 const port = 5005;
-
+const path = require('path')
 var LiqPay = require("./my_modules/liqpay/liqpay");
 const { v4: uuidv4 } = require("uuid");
 const pool = require("./db/pool");
@@ -294,8 +294,10 @@ bot.hears("👎", async (ctx) => {
 });
 
 bot.hears("💰 Реферальне посилання", async (ctx) => {
-  await ctx.reply(
-    `Ваше реферальне посилання:\nhttps://t.me/noris_chat_bot?start=${ctx.message.from.id}`
+  const photoPath = path.join(__dirname, 'static_files', 'referal.jpg');
+  await ctx.replyWithPhoto(
+    {source:photoPath},{caption:`\n<b>Ваше унікальне реферальне посилання:</b>\n\n<i>(Натисніть щоб скопіювати)</i>\n<code>https://t.me/noris_chat_bot?start=${ctx.message.from.id}</code>\n\nПросто скопіюйте його та перешліть друзям.\n\n`,parse_mode:"HTML"},
+    // `Ваше реферальне посилання:\nhttps://t.me/noris_chat_bot?start=${ctx.message.from.id}`
   );
 });
 
