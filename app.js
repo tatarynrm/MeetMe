@@ -105,6 +105,7 @@ bot.start(async (ctx) => {
               { text: "💰 Реферальне посилання" },
               { text: "🔄 Заповнити анкету знову" },
             ],
+            [{text:"🐣 Зв'язок з розробником"}]
           ],
           resize_keyboard: true,
         },
@@ -499,6 +500,9 @@ bot.hears("🔑 Мій аккаунт", async (ctx) => {
     );
   }
 });
+bot.hears(`🐣 Зв'язок з розробником`,async ctx =>{
+  ctx.reply('@web_developer_Ukraine')
+})
 bot.launch();
 process.once("SIGINT", () => bot.stop("SIGINT"));
 process.once("SIGTERM", () => bot.stop("SIGTERM"));
