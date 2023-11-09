@@ -185,53 +185,58 @@ bot.hears("Створити анкету 📒", async (ctx) => {
 
 bot.hears("👀 Дивитись анкети", async (ctx) => {
   const profiles1 = await pool.query(`
- SELECT a.*, b.photo_url
+ SELECT a.*, b.photo_url,b.type
  FROM users_info AS a
  LEFT JOIN users_photos AS b
  ON a.user_id = b.user_id 
  where a.user_id != ${ctx.message.from.id}
  `);
-
   const usersProfile = profiles1.rows;
   if (usersProfile.length > 0) {
     profiles.push(...usersProfile);
   }
-
   if (currentProfileIndex < profiles.length) {
     sendProfile(ctx);
   } else {
-    ctx.reply("No more profiles available.");
+    ctx.reply("Більше немає анкет для перегляду.");
   }
 });
 async function sendProfile(ctx, like) {
   const currentProfile = profiles[currentProfileIndex];
   const message = `Name: ${currentProfile.name}\nAge: ${currentProfile.age}`;
-  // const message = `Na323`;
-  // const replyMarkup = Markup.inlineKeyboard([
-  //   Markup.button.callback("Like", "like"),
-  //   Markup.button.callback("Dislike", "dislike"),
-  // ]);
-
+  console.log(currentProfile);
   const keyboard = Markup.inlineKeyboard([
     Markup.button.callback("Option 1", "option1"),
     Markup.button.callback("Option 2", "option2"),
   ]);
 
-  const photoUrl =
-    "https://static-ssl.businessinsider.com/image/5cc86f31768b3e05177244e3-2400/shutterstock1093218185.jp2";
-  await ctx.replyWithPhoto(
-    {
-      url: currentProfile.photo_url,
-    },
-    {
-      caption: message,
-      reply_markup: {
-        keyboard: [[{ text: "❤️" }, { text: "👎" }]],
-        resize_keyboard: true,
+  if (currentProfile.type === "photo") {
+    await ctx.replyWithPhoto(
+      {
+        url: currentProfile.photo_url,
       },
-    }
-  );
-
+      {
+        caption: message,
+        reply_markup: {
+          keyboard: [[{ text: "❤️" }, { text: "👎" }]],
+          resize_keyboard: true,
+        },
+      }
+    );
+  } else {
+    await ctx.replyWithVideo(
+      {
+        url: currentProfile.photo_url,
+      },
+      {
+        caption: message,
+        reply_markup: {
+          keyboard: [[{ text: "❤️" }, { text: "👎" }]],
+          resize_keyboard: true,
+        },
+      }
+    );
+  }
   // Інкрементуємо currentProfileIndex для відправки наступної анкети
   currentProfileIndex++;
 }
@@ -325,7 +330,7 @@ bot.hears("🔑 Мій аккаунт", async (ctx) => {
   const me = myAcc.rows[0];
   console.log(me);
   const message = `👤Ім'я: ${me.name}\n\n🕐Вік: ${me.age}\n\n💁Інфа: ${me.text}`;
-  if (me.type === 'photo') {
+  if (me.type === "photo") {
     await ctx.replyWithPhoto(
       {
         url: me.photo_url,
@@ -342,7 +347,7 @@ bot.hears("🔑 Мій аккаунт", async (ctx) => {
         },
       }
     );
-  }else {
+  } else {
     await ctx.replyWithVideo(
       {
         url: me.photo_url,
@@ -360,7 +365,6 @@ bot.hears("🔑 Мій аккаунт", async (ctx) => {
       }
     );
   }
-
 });
 
 bot.hears("⬅️ Назад", async (ctx) => {
@@ -392,118 +396,12 @@ bot.hears("⚙ Налаштування", async (ctx) => {
   });
 });
 
-// bot.on('photo', async (ctx) => {
-//   const userId = ctx.from.id;
-//   const photo = ctx.message.photo[0]; // Отримуємо перше завантажене фото з повідомлення
-
-//   if (photo) {
-//     const file = await ctx.telegram.getFile(photo.file_id);
-//     const photoUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`;
-// console.log(file);
-//     // Завантажуємо фото за URL
-//     const https = require('https');
-//     https.get(photoUrl, (response) => {
-//       let data = [];
-
-//       response.on('data', (chunk) => {
-//         data.push(chunk);
-//         // console.log(data);
-//       });
-
-//       response.on('end', () => {
-//         const photoData = Buffer.concat(data);
-//         console.log(photoData);
-//         // Запис фото в базу даних
-//         const insertQuery = 'INSERT INTO users_photos (photo_data,user_id) VALUES ($1,$2) RETURNING id';
-//         pool.query(insertQuery, [photoData,ctx.message.from.id], (err, result) => {
-//           if (err) {
-//             console.log(err);
-//             ctx.reply('Помилка при завантаженні фото.');
-//           } else {
-//             const photoId = result.rows[0].id;
-//             ctx.reply(`Фото було успішно завантажено і збережено з ID ${photoId}`);
-//           }
-//         });
-//       });
-//     });
-//   } else {
-//     ctx.reply('Будь ласка, надішліть фото для завантаження.');
-//   }
-// });
-
-bot.hears('myphoto',async ctx =>{
-//   const photoId = 15; // Замініть це значення на ID фото, яке ви хочете відправити
-// const selectQuery = `SELECT photo_data FROM users_photos WHERE id = $1`;
-//  pool.query(selectQuery, [photoId], (err, result) => {
-//   if (err) {
-//     console.error(err);
-//     ctx.reply('Помилка при отриманні фото з бази даних.');
-//   } else {
-//     const photoData = result.rows[0].photo_data;
-//     // Отправляем фото користувачу
-//     console.log(photoData);
-//     ctx.replyWithPhoto({ source: photoData });
-//   }
-// });
-// await ctx.replyWithPhoto({source:"https://api.telegram.org/file/bot6155581971:AAGTFCMUsLrOy4TT7QBaaqvu2HSTcrwhnqE/photos/file_39.jpg"})
-axios.get('https://api.telegram.org/file/bot6155581971:AAGTFCMUsLrOy4TT7QBaaqvu2HSTcrwhnqE/photos/file_39.jpg').then(res => {
-  ctx.replyWithPhoto({source:res.data})
-})
-})
-
-bot.on("photo", async (ctx) => {
-  const userId = ctx.from.id;
-  const fileIds = ctx.message.document ? [ctx.message.document.file_id] : [];
-  if (ctx.message.photo) {
-    fileIds.push(...ctx.message.photo.map((photo) => photo.file_id));
-  }
-
-  if (fileIds.length === 0) {
-    ctx.reply("Будь ласка, надішліть фотографії або відео для завантаження.");
-    return;
-  }
-
-  const fileUrls = [];
-  const promises = [];
-
-  for (const fileId of fileIds) {
-    promises.push(
-      ctx.telegram.getFileLink(fileId).then((url) => {
-        fileUrls.push(url);
-      })
-    );
-  }
-
-  await Promise.all(promises);
-
-  // Збереження шляхів до файлів в базі даних
-  const insertQuery =
-    "INSERT INTO users_photos (user_id, photo_url) VALUES ($1, $2) RETURNING id";
-  const values = [userId, fileUrls];
-  pool.query(insertQuery, values, (err, result) => {
-    if (err) {
-      console.error(err);
-      ctx.reply("Помилка при збереженні файлів в базі даних.");
-    } else {
-      ctx.reply("Файли були успішно завантажені і збережені.");
-    }
-  });
-});
-
-{
-  '"https://api.telegram.org/file/bot6155581971:AAGTFCMUsLrOy4TT7QBaaqvu2HSTcrwhnqE/photos/file_39.jpg"',
-    '"https://api.telegram.org/file/bot6155581971:AAGTFCMUsLrOy4TT7QBaaqvu2HSTcrwhnqE/photos/file_37.jpg"',
-    '"https://api.telegram.org/file/bot6155581971:AAGTFCMUsLrOy4TT7QBaaqvu2HSTcrwhnqE/photos/file_38.jpg"';
-}
-
 bot.launch();
-// Enable graceful stop
 process.once("SIGINT", () => bot.stop("SIGINT"));
 process.once("SIGTERM", () => bot.stop("SIGTERM"));
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
-
 module.exports = {
   bot,
 };
