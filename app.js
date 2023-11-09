@@ -105,7 +105,8 @@ bot.start(async (ctx) => {
               { text: "💰 Реферальне посилання" },
               { text: "🔄 Заповнити анкету знову" },
             ],
-            [{text:"🐣 Зв'язок з розробником"}]
+            [{text:"🐣 Зв'язок з розробником"}],
+            [{ text: "🌐 Відкрити сайт в телеграмі" }],
           ],
           resize_keyboard: true,
         },
@@ -387,6 +388,7 @@ bot.hears("⬅️ Назад", async (ctx) => {
           { text: "💰 Реферальне посилання" },
           { text: "🔄 Заповнити анкету знову" },
         ],
+        
       ],
       resize_keyboard: true,
     },
@@ -474,6 +476,7 @@ bot.hears("🔑 Мій аккаунт", async (ctx) => {
             [{ text: "⚙ Налаштування" }],
             [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
             [{ text: "👨‍👩‍👧‍👦 Мої реферали" }],
+            [{ text: "Веб" }],
             [{ text: "⬅️ Назад" }],
           ],
           resize_keyboard: true,
@@ -492,6 +495,7 @@ bot.hears("🔑 Мій аккаунт", async (ctx) => {
             [{ text: "⚙ Налаштування" }],
             [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
             [{ text: "👨‍👩‍👧‍👦 Мої реферали" }],
+            [{ text: "Веб" }],
             [{ text: "⬅️ Назад" }],
           ],
           resize_keyboard: true,
@@ -504,9 +508,53 @@ bot.hears(`🐣 Зв'язок з розробником`,async ctx =>{
   ctx.reply('@web_developer_Ukraine')
 })
 bot.hears(`✔️`,async ctx =>{
-  ctx.reply('Ви в головному меню')
+  ctx.reply('Ви в головному меню',      {
+    reply_markup: {
+      keyboard: [
+        [{ text: "🔑 Мій аккаунт" }, { text: "👀 Дивитись анкети" }],
+        [
+          { text: "💰 Реферальне посилання" },
+          { text: "🔄 Заповнити анкету знову" },
+        ],
+        [{text:"🐣 Зв'язок з розробником"}],
+        [{ text: "🌐 Відкрити сайт в телеграмі" }],
+      ],
+      resize_keyboard: true,
+    },
+  })
+})
+bot.hears(`🌐 Відкрити сайт в телеграмі`,async ctx =>{
+  ctx.reply('Наш веб сайт',{
+    reply_markup:{keyboard:[[{text:"SITE",web_app:{url:"https://noris.tech"}}]]}
+  })
 })
 
+
+// bot.hears('msg_to_user',async ctx =>{
+//   const result = await pool.query(`select * from users`);
+//   console.log(result.rows);
+//   for (let i = 0; i < result.rows.length; i++) {
+//     const el = result.rows[i];
+//     console.log(el.tg_id);
+//     bot.telegram.sendMessage(el.tg_id,'Додав нову фічуууууу.Сайт який відкривається прям в БОТІ....Гиии )')
+//     // ctx.sendMessage('Додав нову фічуууууу.Сайт який відкривається прям в БОТІ....Гиии )',{chat_id:el.tg_id})
+//   }
+// })
+
+// const sendMessageToUsers = async ()=>{
+//   try {
+//     const result = await pool.query(`select * from users`);
+//     for (let i = 0; i < result.rows.length; i++) {
+//     const el = result.rows[i];
+//     console.log(el.tg_id);
+//     bot.telegram.sendMessage(el.tg_id,'Додав нову фічуууууу.Сайт який відкривається прям в БОТІ....Гиии )')
+//     // ctx.sendMessage('Додав нову фічуууууу.Сайт який відкривається прям в БОТІ....Гиии )',{chat_id:el.tg_id})
+//   }
+//   } catch (error) {
+//     console.log(error);
+//   }
+// }
+// sendMessageToUsers()
 bot.launch();
 process.once("SIGINT", () => bot.stop("SIGINT"));
 process.once("SIGTERM", () => bot.stop("SIGTERM"));
