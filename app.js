@@ -58,7 +58,7 @@ const getInvoice = async (amount, username, customer) => {
         currency: "UAH",
         order_id: uuidv4(),
         description: `Поповнення балансу бота Чистокровнй українець ${
-          username ? username : null
+          username ? username : '.'
         }`,
         server_url: "https://api.noris.tech/liqpay/callback",
         customer: customer,
