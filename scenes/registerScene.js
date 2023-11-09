@@ -231,11 +231,8 @@ const registrationScene = new Scenes.WizardScene(
       if (ctx.message.video.duration > 15) {
         await ctx.reply("Відео довше ніж 15 секунд.Нажаль Telegram не може пропустити дане відео.Оптимальна тривалість до 15 секунд)");
         return;
-      }else {
-        console.log("ewqewqewqewq");
-        console.log(ctx.message.video.thumb.file_id);
-        console.log(ctx.message.video);
-  
+      }else {  
+  const videoId = ctx.message.video.file_id
         const folderName = `${ctx.message.from.id}`; // Назва папки, яку потрібно створити
         const folderPath = path.join(rootPath, "img", folderName); // Шлях до папки
         if (fs.existsSync(folderPath)) {
@@ -244,7 +241,6 @@ const registrationScene = new Scenes.WizardScene(
         }
         // Створимо папку заново
         fs.mkdirSync(folderPath);
-        let videoId = ctx.message.video.thumbnail.file_id;
         ctx.telegram.getFileLink(videoId).then((link) => {
           https.get(link, (response) => {
             // console.log("IDXXXXXXXXXXXX", imageId);
@@ -255,6 +251,7 @@ const registrationScene = new Scenes.WizardScene(
           });
         });
         ctx.reply("Відео успішно завантажено");
+
         const registrationData = {
           name: userData.name,
           age: userData.age,
