@@ -531,7 +531,7 @@ bot.hears(`🌐 Відкрити сайт в телеграмі`,async ctx =>{
     ]}
   })
 })
-
+// 
 
 // bot.hears('msg_to_user',async ctx =>{
 //   const result = await pool.query(`select * from users`);
