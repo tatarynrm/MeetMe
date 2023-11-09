@@ -340,9 +340,7 @@ return ctx.scene.leave();
         // }
         // Clear user data
         // delete userData;
-        if (ctx.message.text === '/start') {
-          return ctx.scene.leave();
-          }
+
         ctx.reply(
           "Дякуємо за реєстрацію.Тепер ви можете перейти до пошуку анкет.",
           {
