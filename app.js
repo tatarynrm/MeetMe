@@ -525,7 +525,10 @@ bot.hears(`✔️`,async ctx =>{
 })
 bot.hears(`🌐 Відкрити сайт в телеграмі`,async ctx =>{
   ctx.reply('Наш веб сайт',{
-    reply_markup:{keyboard:[[{text:"SITE",web_app:{url:"https://noris.tech"}}]]}
+    reply_markup:{keyboard:[
+      [{text:"SITE",web_app:{url:"https://noris.tech"}}],
+      [{text:"✔️"}]
+    ]}
   })
 })
 
