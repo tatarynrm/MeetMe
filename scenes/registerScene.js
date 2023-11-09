@@ -22,13 +22,18 @@ const registrationScene = new Scenes.WizardScene(
     ctx.reply(`Напишіть своє ім'я:`, {
       reply_markup: { remove_keyboard: true },
     });
-
+if (ctx.message.text === '/start') {
+return ctx.scene.leave();
+}
     return ctx.wizard.next();
   },
   async (ctx) => {
     const name = ctx.message.text;
     userData.name = name;
     ctx.reply(`Чудово! Тепер вкажіть свій вік:`);
+    if (ctx.message.text === '/start') {
+      return ctx.scene.leave();
+      }
     return ctx.wizard.next();
   },
 
@@ -53,10 +58,16 @@ const registrationScene = new Scenes.WizardScene(
         resize_keyboard: true,
       },
     });
+    if (ctx.message.text === '/start') {
+      return ctx.scene.leave();
+      }
     return ctx.wizard.next();
   },
   async (ctx) => {
     const sex = ctx.message.text;
+    if (ctx.message.text === '/start') {
+      return ctx.scene.leave();
+      }
     if (sex === "Я хлопець") {
       userData.sex = "M";
     } else if (sex === "Я дівчина") {
@@ -65,7 +76,7 @@ const registrationScene = new Scenes.WizardScene(
       await ctx.reply("Немає такої відповіді)");
       return;
     }
-
+   
     await ctx.reply(`Кого ви шукаєте?`, {
       reply_markup: {
         keyboard: [
@@ -87,7 +98,9 @@ const registrationScene = new Scenes.WizardScene(
       await ctx.reply("Немає такої відповіді)");
       return;
     }
-
+    if (ctx.message.text === '/start') {
+      return ctx.scene.leave();
+      }
     ctx.reply(`Опишіть себе!`, { reply_markup: { remove_keyboard: true } });
     return ctx.wizard.next();
   },
@@ -97,6 +110,9 @@ const registrationScene = new Scenes.WizardScene(
     ctx.reply(
       "Вандерфул! Залишився останній крок.Завантажте максимум 1 фото у свій профіль / або 1 відео 🤗"
     );
+    if (ctx.message.text === '/start') {
+      return ctx.scene.leave();
+      }
     return ctx.wizard.next();
   },
   async (ctx) => {
@@ -324,7 +340,9 @@ const registrationScene = new Scenes.WizardScene(
         // }
         // Clear user data
         // delete userData;
-  
+        if (ctx.message.text === '/start') {
+          return ctx.scene.leave();
+          }
         ctx.reply(
           "Дякуємо за реєстрацію.Тепер ви можете перейти до пошуку анкет.",
           {

@@ -219,7 +219,7 @@ async function sendProfile(ctx, like) {
       {
         caption: message,
         reply_markup: {
-          keyboard: [[{ text: "❤️" }, { text: "👎" }]],
+          keyboard: [[{ text: "❤️" }, { text: "👎" },{ text: "✔️" }]],
           resize_keyboard: true,
         },
       }
@@ -232,7 +232,7 @@ async function sendProfile(ctx, like) {
       {
         caption: message,
         reply_markup: {
-          keyboard: [[{ text: "❤️" }, { text: "👎" }]],
+          keyboard: [[{ text: "❤️" }, { text: "👎" },{ text: "✔️" }]],
           resize_keyboard: true,
         },
       }
@@ -503,6 +503,10 @@ bot.hears("🔑 Мій аккаунт", async (ctx) => {
 bot.hears(`🐣 Зв'язок з розробником`,async ctx =>{
   ctx.reply('@web_developer_Ukraine')
 })
+bot.hears(`✔️`,async ctx =>{
+  ctx.reply('Ви в головному меню')
+})
+
 bot.launch();
 process.once("SIGINT", () => bot.stop("SIGINT"));
 process.once("SIGTERM", () => bot.stop("SIGTERM"));
