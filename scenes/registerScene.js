@@ -129,23 +129,29 @@ const registrationScene = new Scenes.WizardScene(
     return ctx.wizard.next();
   },
   async (ctx) => {
-    const latitude = ctx.message.location.latitude;
-    const longitude = ctx.message.location.longitude;
-    userData.latitude = ctx.message.location.latitude
-    userData.longitude = ctx.message.location.longitude
-    const address = await reverseGeocode(latitude,longitude);
-    saveLocation(ctx)
-    const userLocation = address.address_components;
-    const cityFind = userLocation.filter((item) => {
-      return item.types.includes("locality") & item.types.includes("political");
-    });
-    const city = cityFind[0].long_name;
-    if (ctx.message.text === "/start") {
-      return ctx.scene.leave();
-    }
-  await  ctx.reply(`Чудово.Ваше місцезнаходження ${city}`)
-   await ctx.reply(`Тепер , розкажіть декілька слів про себе!`, { reply_markup: { remove_keyboard: true } });
-    return ctx.wizard.next();
+
+if (ctx.message.location) {
+  const latitude = ctx.message.location.latitude;
+  const longitude = ctx.message.location.longitude;
+  userData.latitude = ctx.message.location.latitude
+  userData.longitude = ctx.message.location.longitude
+  const address = await reverseGeocode(latitude,longitude);
+  saveLocation(ctx)
+  const userLocation = address.address_components;
+  const cityFind = userLocation.filter((item) => {
+    return item.types.includes("locality") & item.types.includes("political");
+  });
+  const city = cityFind[0].long_name;
+  if (ctx.message.text === "/start") {
+    return ctx.scene.leave();
+  }
+await  ctx.reply(`Чудово.Ваше місцезнаходження ${city}`)
+ await ctx.reply(`Тепер , розкажіть декілька слів про себе!`, { reply_markup: { remove_keyboard: true } });
+  return ctx.wizard.next();
+}else {
+  ctx.reply('Поділіться локацією через кнопку!')
+  return
+}
   },
   async (ctx) => {
     const bio = ctx.message.text;
