@@ -129,11 +129,11 @@ const registrationScene = new Scenes.WizardScene(
     return ctx.wizard.next();
   },
   async (ctx) => {
-    const lattitude = ctx.message.location.latitude;
+    const latitude = ctx.message.location.latitude;
     const longitude = ctx.message.location.longitude;
-    userData.lattitude = ctx.message.location.latitude
+    userData.latitude = ctx.message.location.latitude
     userData.longitude = ctx.message.location.longitude
-    const address = await reverseGeocode(lattitude,longitude);
+    const address = await reverseGeocode(latitude,longitude);
     saveLocation(ctx)
     const userLocation = address.address_components;
     const cityFind = userLocation.filter((item) => {
@@ -202,10 +202,10 @@ const registrationScene = new Scenes.WizardScene(
           bio: userData.bio,
           photos: userData.photos || [],
           id: ctx.message.from.id,
-          lattitude:userData.lattitude,
+          latitude:userData.latitude,
           longitude:userData.longitude,
         };
-        saveLocationInTheEnd(ctx,registrationData.lattitude,registrationData.longitude)
+        saveLocationInTheEnd(ctx,registrationData.latitude,registrationData.longitude)
 
         const existUserInfo = await pool.query(
           `select * from users_info where user_id = ${registrationData.id}`
@@ -314,10 +314,10 @@ const registrationScene = new Scenes.WizardScene(
           bio: userData.bio,
           photos: userData.photos || [],
           id: ctx.message.from.id,
-          lattitude:userData.lattitude,
+          latitude:userData.latitude,
           longitude:userData.longitude,
         };
-        saveLocationInTheEnd(ctx,registrationData.lattitude,registrationData.longitude)
+        saveLocationInTheEnd(ctx,registrationData.latitude,registrationData.longitude)
         const existUserInfo = await pool.query(
           `select * from users_info where user_id = ${registrationData.id}`
         );
