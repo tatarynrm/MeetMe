@@ -97,7 +97,6 @@ bot.start(async (ctx) => {
       reply_markup: {
         keyboard: [
           [{ text: "Створити анкету 📒" }],
-          [{ text: "Наше Comunity 👨‍👨‍👧‍👧" }],
           [{ text: "🌐 Відкрити сайт" }],
         ],
         resize_keyboard: true,
@@ -205,14 +204,17 @@ bot.hears("👀 Дивитись анкети", async (ctx) => {
  where a.user_id != ${ctx.message.from.id}
  `);
   const usersProfile = profiles1.rows;
-  if (usersProfile.length > 0) {
+  if (usersProfile.length > 0 ) {
     profiles.push(...usersProfile);
+    if (currentProfileIndex < profiles.length) {
+      sendProfile(ctx);
+    } else {
+      ctx.reply("Більше немає анкет для перегляду.");
+    }
+  }else {
+    ctx.reply("Упссссс....Щось пішло не так");
   }
-  if (currentProfileIndex < profiles.length) {
-    sendProfile(ctx);
-  } else {
-    ctx.reply("Більше немає анкет для перегляду.");
-  }
+
 });
 async function sendProfile(ctx, like) {
   const currentProfile = profiles[currentProfileIndex];
@@ -353,7 +355,10 @@ bot.hears("🔑 Мій аккаунт", async (ctx) => {
   WHERE a.user_id = ${ctx.message.from.id};
   `);
   const me = myAcc.rows[0];
-  console.log("MEEEEEEEEEEEEEEEEEEEEE", me);
+if (me === undefined || me === null ) {
+  await ctx.reply('Упссс.....щось пішло не так....')
+}else {
+   
   const message = `👤Ім'я: ${me?.name ? me?.name : "..."}\n\n🕐Вік: ${
     me?.age ? me?.age : 50
   }\n\n💁Інфа: ${me?.text ? me?.text : "Немає інфи"}`;
@@ -394,6 +399,7 @@ bot.hears("🔑 Мій аккаунт", async (ctx) => {
       }
     );
   }
+}
 });
 
 bot.hears("⬅️ Назад", async (ctx) => {
