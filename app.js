@@ -58,7 +58,7 @@ const getInvoice = async (amount, username, customer) => {
         currency: "UAH",
         order_id: uuidv4(),
         description: `Поповнення балансу бота Чистокровнй українець ${
-          username ? username : '.'
+          username ? username : "."
         }`,
         server_url: "https://api.noris.tech/liqpay/callback",
         customer: customer,
@@ -81,8 +81,8 @@ bot.start(async (ctx) => {
     `select * from users_info where user_id = ${ctx.message.from.id}`
   );
 
-  if (userInfo.rows <= 0) {
-    ctx.replyWithHTML(
+  if (userInfo?.rows <= 0) {
+    await ctx.replyWithHTML(
       `Вітаю в боті знайомств MeetMe.\nПерший повномасштабний український бот знайомств в телеграмі!`,
       {
         reply_markup: {
@@ -95,7 +95,7 @@ bot.start(async (ctx) => {
       }
     );
   } else {
-    ctx.replyWithHTML(
+    await ctx.replyWithHTML(
       `Вітаю в боті знайомств MeetMe.\nПерший повномасштабний український бот знайомств в телеграмі!`,
       {
         reply_markup: {
@@ -105,7 +105,7 @@ bot.start(async (ctx) => {
               { text: "💰 Реферальне посилання" },
               { text: "🔄 Заповнити анкету знову" },
             ],
-            [{text:"🐣 Зв'язок з розробником"}],
+            [{ text: "🐣 Зв'язок з розробником" }],
             [{ text: "🌐 Відкрити сайт в телеграмі" }],
           ],
           resize_keyboard: true,
@@ -132,7 +132,7 @@ bot.start(async (ctx) => {
     values(${userId},${referrerId})
    `);
       // ctx.sendMessage(referrerId,`Користувач ${userId} щойно вам надав 2 безкоштовних лайки.Користуйтесь!)`)
-      bot.telegram.sendMessage(
+      await bot.telegram.sendMessage(
         referrerId,
         `Користувач ${userId} щойно вам надав 5 безкоштовних ❤️.Користуйтесь!)`
       );
@@ -205,7 +205,11 @@ bot.hears("👀 Дивитись анкети", async (ctx) => {
 });
 async function sendProfile(ctx, like) {
   const currentProfile = profiles[currentProfileIndex];
-  const message = `Name: ${currentProfile?.name ?currentProfile?.name :null }\nAge: ${currentProfile.age ?currentProfile.age :null}\nInfo: ${currentProfile?.text ? currentProfile?.text :null }`;
+  const message = `Name: ${
+    currentProfile?.name ? currentProfile?.name : null
+  }\nAge: ${currentProfile.age ? currentProfile.age : null}\nInfo: ${
+    currentProfile?.text ? currentProfile?.text : null
+  }`;
   console.log(currentProfile);
   const keyboard = Markup.inlineKeyboard([
     Markup.button.callback("Option 1", "option1"),
@@ -220,7 +224,7 @@ async function sendProfile(ctx, like) {
       {
         caption: message,
         reply_markup: {
-          keyboard: [[{ text: "❤️" }, { text: "👎" },{ text: "✔️" }]],
+          keyboard: [[{ text: "❤️" }, { text: "👎" }, { text: "✔️" }]],
           resize_keyboard: true,
         },
       }
@@ -233,7 +237,7 @@ async function sendProfile(ctx, like) {
       {
         caption: message,
         reply_markup: {
-          keyboard: [[{ text: "❤️" }, { text: "👎" },{ text: "✔️" }]],
+          keyboard: [[{ text: "❤️" }, { text: "👎" }, { text: "✔️" }]],
           resize_keyboard: true,
         },
       }
@@ -388,7 +392,6 @@ bot.hears("⬅️ Назад", async (ctx) => {
           { text: "💰 Реферальне посилання" },
           { text: "🔄 Заповнити анкету знову" },
         ],
-        
       ],
       resize_keyboard: true,
     },
@@ -504,11 +507,11 @@ bot.hears("🔑 Мій аккаунт", async (ctx) => {
     );
   }
 });
-bot.hears(`🐣 Зв'язок з розробником`,async ctx =>{
-  ctx.reply('@web_developer_Ukraine')
-})
-bot.hears(`✔️`,async ctx =>{
-  ctx.reply('Ви в головному меню',      {
+bot.hears(`🐣 Зв'язок з розробником`, async (ctx) => {
+  ctx.reply("@web_developer_Ukraine");
+});
+bot.hears(`✔️`, async (ctx) => {
+  ctx.reply("Ви в головному меню", {
     reply_markup: {
       keyboard: [
         [{ text: "🔑 Мій аккаунт" }, { text: "👀 Дивитись анкети" }],
@@ -516,24 +519,24 @@ bot.hears(`✔️`,async ctx =>{
           { text: "💰 Реферальне посилання" },
           { text: "🔄 Заповнити анкету знову" },
         ],
-        [{text:"🐣 Зв'язок з розробником"}],
+        [{ text: "🐣 Зв'язок з розробником" }],
         [{ text: "🌐 Відкрити сайт в телеграмі" }],
       ],
       resize_keyboard: true,
     },
-  })
-})
-bot.hears(`🌐 Відкрити сайт в телеграмі`,async ctx =>{
-  ctx.reply('Наш веб сайт',{
-    reply_markup:{keyboard:[
-      [{text:"SITE",web_app:{url:"https://noris.tech"}}],
-      [{text:"✔️"}]
-    ]}
-  })
-})
-// 
-
-
+  });
+});
+bot.hears(`🌐 Відкрити сайт в телеграмі`, async (ctx) => {
+  ctx.reply("Наш веб сайт", {
+    reply_markup: {
+      keyboard: [
+        [{ text: "SITE", web_app: { url: "https://noris.tech" } }],
+        [{ text: "✔️" }],
+      ],
+    },
+  });
+});
+//
 
 // const sendMessageToUsers = async ()=>{
 //   try {
