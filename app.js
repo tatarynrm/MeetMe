@@ -670,6 +670,11 @@ bot.hears("🔸Змінити інфо про себе", async (ctx) => {
   ctx.scene.enter("changeInfoScene");
 });
 
+
+
+
+
+
 bot.hears("Локація", (ctx) => {
   const chatId = ctx.chat.id;
 

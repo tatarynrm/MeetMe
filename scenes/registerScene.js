@@ -5,7 +5,7 @@ const fs = require("fs");
 const axios = require("axios");
 const path = require("path");
 const downloadAndSaveFile = require("../helpers/savePhotos");
-const saveLocation = require("../helpers/saveLocation");
+const {saveLocation, saveLocationInTheEnd} = require("../helpers/saveLocation");
 const reverseGeocode = require("../helpers/reverseGeocode");
 
 const savePath = "../downloads/";
@@ -131,7 +131,9 @@ const registrationScene = new Scenes.WizardScene(
   async (ctx) => {
     const lattitude = ctx.message.location.latitude;
     const longitude = ctx.message.location.longitude;
-   const address = await reverseGeocode(lattitude,longitude);
+    userData.lattitude = ctx.message.location.latitude
+    userData.longitude = ctx.message.location.longitude
+    const address = await reverseGeocode(lattitude,longitude);
     saveLocation(ctx)
     const userLocation = address.address_components;
     const cityFind = userLocation.filter((item) => {
@@ -200,8 +202,11 @@ const registrationScene = new Scenes.WizardScene(
           bio: userData.bio,
           photos: userData.photos || [],
           id: ctx.message.from.id,
+          lattitude:userData.lattitude,
+          longitude:userData.longitude,
         };
-        console.log("REGISTER DATAAAAAAAAAAAAAAAAAAAAAAAAAA",registrationData);
+        saveLocationInTheEnd(ctx,registrationData.lattitude,registrationData.longitude)
+
         const existUserInfo = await pool.query(
           `select * from users_info where user_id = ${registrationData.id}`
         );
@@ -309,7 +314,10 @@ const registrationScene = new Scenes.WizardScene(
           bio: userData.bio,
           photos: userData.photos || [],
           id: ctx.message.from.id,
+          lattitude:userData.lattitude,
+          longitude:userData.longitude,
         };
+        saveLocationInTheEnd(ctx,registrationData.lattitude,registrationData.longitude)
         const existUserInfo = await pool.query(
           `select * from users_info where user_id = ${registrationData.id}`
         );
