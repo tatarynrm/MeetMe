@@ -83,7 +83,7 @@ bot.start(async (ctx) => {
 
   if (userInfo?.rows <= 0) {
     await ctx.replyWithHTML(
-      `Вітаю в боті знайомств MeetMe.\nПерший повномасштабний український бот знайомств в телеграмі!`,
+      `Вітаю!`,
       {
         reply_markup: {
           keyboard: [
