@@ -143,7 +143,6 @@ return ctx.scene.leave();
               folderPath,
               `${ctx.message.from.id}.jpeg`
             );
-            console.log("FILEPATH!!!!!!!!!!!", filePath);
             const fileStream = fs.createWriteStream(filePath);
             response.pipe(fileStream);
           });
@@ -248,7 +247,7 @@ return ctx.scene.leave();
         await ctx.reply("Відео довше ніж 15 секунд.Нажаль Telegram не може пропустити дане відео.Оптимальна тривалість до 15 секунд)");
         return;
       }else {  
-  const videoId = ctx.message.video.file_id
+        const videoId = ctx.message.video.file_id
         const folderName = `${ctx.message.from.id}`; // Назва папки, яку потрібно створити
         const folderPath = path.join(rootPath, "img", folderName); // Шлях до папки
         if (fs.existsSync(folderPath)) {
@@ -315,11 +314,23 @@ return ctx.scene.leave();
         const existPhoto = await pool.query(
           `select * from users_photos where user_id = ${ctx.message.from.id}`
         );
-        console.log(existPhoto.rows);
+        if (existPhoto.rows > 0) {
+          if (userData.file === "photo") {
+            await pool.query(
+              `UPDATE users_photos SET photo_url = $1 WHERE user_id = $2 AND type = 'photo'`,
+              [`https://api.noris.tech/img/${ctx.message.from.id}/${ctx.message.from.id}.jpeg'`, ctx.message.from.id]
+            );
+          } else {
+            await pool.query(
+              `UPDATE users_photos SET photo_url = $1 WHERE user_id = $2 AND type = 'video'`,
+              [`https://api.noris.tech/img/${ctx.message.from.id}/${ctx.message.from.id}.mp4'`, ctx.message.from.id]
+            );
+          }
+        }
         if (existPhoto.rows <= 0) {
           if (userData.file === "photo") {
             await pool.query(
-              `insert into users_photos (user_id,photo_url,type) values(${
+              `uldate users_photos set (user_id,photo_url,type) values(${
                 ctx.message.from.id
               },'${`https://api.noris.tech/img/${ctx.message.from.id}/${ctx.message.from.id}.jpeg`}','photo') `
             );
