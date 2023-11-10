@@ -215,7 +215,7 @@ return ctx.scene.leave();
         }
         if (existPhoto.rows > 0) {
           if (userData.file === "photo") {
-            await pool.query(
+        const resPhotoUpdate=  await pool.query(
               `UPDATE users_photos SET photo_url = $1, type = $2 WHERE user_id = $3`,
               [
                 `https://api.noris.tech/img/${ctx.message.from.id}/${ctx.message.from.id}.mp4'`,
@@ -223,6 +223,7 @@ return ctx.scene.leave();
                 ctx.message.from.id
               ]
             );
+            console.log('resPhotoUpdateresPhotoUpdateresPhotoUpdate',resPhotoUpdate);
           } else {
             await pool.query(
               `UPDATE users_photos SET photo_url = $1, type = $2 WHERE user_id = $3`,
