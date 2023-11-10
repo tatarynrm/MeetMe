@@ -89,6 +89,7 @@ bot.start(async (ctx) => {
           keyboard: [
             [{ text: "Створити анкету 📒" }],
             [{ text: "Наше Comunity 👨‍👨‍👧‍👧" }],
+            [{ text: "🌐 Відкрити сайт в телеграмі" }],
           ],
           resize_keyboard: true,
         },
@@ -344,7 +345,7 @@ bot.hears("🔑 Мій аккаунт", async (ctx) => {
   const me = myAcc.rows[0];
   console.log(me);
   const message = `👤Ім'я: ${me?.name ? me?.name : '...'}\n\n🕐Вік: ${me?.age ? me?.age : 50}\n\n💁Інфа: ${me?.text ? me?.text : 'Немає інфи'}`;
-  if (me.type === "photo") {
+  if (me?.type === "photo") {
     await ctx.replyWithPhoto(
       {
         url: me.photo_url,

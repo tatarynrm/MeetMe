@@ -148,7 +148,7 @@ return ctx.scene.leave();
           });
         });
         await ctx.reply("Фото успішно завантажено");
-        userData.photo = `https://api.noris.tech/img/${ctx.message.from.id}/${ctx.message.from.id}.jpeg`;
+        userData.photo = `${process.env.API_LINK}/img/${ctx.message.from.id}/${ctx.message.from.id}.jpeg`;
         userData.file = "photo";
         const registrationData = {
           name: userData.name,
@@ -197,49 +197,75 @@ return ctx.scene.leave();
         const existPhoto = await pool.query(
           `select * from users_photos where user_id = ${ctx.message.from.id}`
         );
-
+console.log('EX{IST PHOTOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO',existPhoto);
         if (existPhoto.rows <= 0) {
           if (userData.file === "photo") {
             await pool.query(
               `insert into users_photos (user_id,photo_url,type) values(${
                 ctx.message.from.id
-              },'${`https://api.noris.tech/img/${ctx.message.from.id}/${ctx.message.from.id}.jpeg`}','photo') `
+              },'${`${process.env.API_LINK}/img/${ctx.message.from.id}/${ctx.message.from.id}.jpeg`}','photo') `
             );
           } else {
             await pool.query(
               `insert into users_photos (user_id,photo_url,type) values(${
                 ctx.message.from.id
-              },'${`https://api.noris.tech/img/${ctx.message.from.id}/${ctx.message.from.id}.mp4`}','video') `
+              },'${`${process.env.API_LINK}/img/${ctx.message.from.id}/${ctx.message.from.id}.mp4`}','video') `
             );
           }
         }
+
+
+
+
+
         if (existPhoto.rows > 0) {
           if (userData.file === "photo") {
-        const resPhotoUpdate=  await pool.query(
-              `UPDATE users_photos SET photo_url = $1, type = $2 WHERE user_id = $3`,
-              [
-                `https://api.noris.tech/img/${ctx.message.from.id}/${ctx.message.from.id}.mp4'`,
-                'photo', // Замініть 'new_type_value' на нове значення поля 'type'
-                ctx.message.from.id
-              ]
-            );
-            console.log('resPhotoUpdateresPhotoUpdateresPhotoUpdate',resPhotoUpdate);
+        const updateQuery =
+        "UPDATE users_info SET photo_url = $1, type = 'photo' WHERE user_id = $2";
+
+      const res = pool.query(
+        updateQuery,
+        [
+          `${process.env.API_LINK}/img/${ctx.message.from.id}/${ctx.message.from.id}.jpeg`,
+          ctx.message.from.id,
+  
+        ],
+        (err, result) => {
+          if (err) {
+            console.error("Error executing the query", err);
           } else {
-            await pool.query(
-              `UPDATE users_photos SET photo_url = $1, type = $2 WHERE user_id = $3`,
-              [
-                `https://api.noris.tech/img/${ctx.message.from.id}/${ctx.message.from.id}.mp4'`,
-                'video', // Замініть 'new_type_value' на нове значення поля 'type'
-                ctx.message.from.id
-              ]
-            );
+            console.log("Data updated successfully");
+          }
+        }
+      );
+      console.log('UPDATING PHOTO--------',res);
+          } else {
+            const updateQuery =
+            "UPDATE users_info SET photo_url = $1, type = 'video' WHERE user_id = $2";
+    
+          const res = pool.query(
+            updateQuery,
+            [
+              `${process.env.API_LINK}/img/${ctx.message.from.id}/${ctx.message.from.id}.mp4`,
+              ctx.message.from.id,
+      
+            ],
+            (err, result) => {
+              if (err) {
+                console.error("Error executing the query", err);
+              } else {
+                console.log("Data updated successfully");
+              }
+            }
+          );
+          console.log('UPDATING PHOTO--------',res)
           }
         }
         // if (existPhoto.rows <= 0) {
         //   await pool.query(
         //     `insert into users_photos (user_id,photo_url) values(${
         //       ctx.message.from.id
-        //     },'${`https://api.noris.tech/img/${ctx.message.from.id}/${ctx.message.from.id}.jpeg`}') `
+        //     },'${`${process.env.API_LINK}/img/${ctx.message.from.id}/${ctx.message.from.id}.jpeg`}') `
         //   );
         // }
         // Clear user data
@@ -341,13 +367,13 @@ return ctx.scene.leave();
             await pool.query(
               `insert into users_photos (user_id,photo_url,type) values(${
                 ctx.message.from.id
-              },'${`https://api.noris.tech/img/${ctx.message.from.id}/${ctx.message.from.id}.jpeg`}','photo') `
+              },'${`${process.env.API_LINK}/img/${ctx.message.from.id}/${ctx.message.from.id}.jpeg`}','photo') `
             );
           } else {
             await pool.query(
               `insert into users_photos (user_id,photo_url,type) values(${
                 ctx.message.from.id
-              },'${`https://api.noris.tech/img/${ctx.message.from.id}/${ctx.message.from.id}.mp4`}','video') `
+              },'${`${process.env.API_LINK}/img/${ctx.message.from.id}/${ctx.message.from.id}.mp4`}','video') `
             );
           }
         }
@@ -356,7 +382,7 @@ return ctx.scene.leave();
             await pool.query(
               `UPDATE users_photos SET photo_url = $1, type = $2 WHERE user_id = $3`,
               [
-                `https://api.noris.tech/img/${ctx.message.from.id}/${ctx.message.from.id}.mp4'`,
+                `${process.env.API_LINK}/img/${ctx.message.from.id}/${ctx.message.from.id}.mp4'`,
                 'photo', // Замініть 'new_type_value' на нове значення поля 'type'
                 ctx.message.from.id
               ]
@@ -365,7 +391,7 @@ return ctx.scene.leave();
             await pool.query(
               `UPDATE users_photos SET photo_url = $1, type = $2 WHERE user_id = $3`,
               [
-                `https://api.noris.tech/img/${ctx.message.from.id}/${ctx.message.from.id}.mp4'`,
+                `${process.env.API_LINK}/img/${ctx.message.from.id}/${ctx.message.from.id}.mp4'`,
                 'video', // Замініть 'new_type_value' на нове значення поля 'type'
                 ctx.message.from.id
               ]
@@ -376,7 +402,7 @@ return ctx.scene.leave();
         //   await pool.query(
         //     `insert into users_photos (user_id,photo_url) values(${
         //       ctx.message.from.id
-        //     },'${`https://api.noris.tech/img/${ctx.message.from.id}/${ctx.message.from.id}.jpeg`}') `
+        //     },'${`${process.env.API_LINK}/img/${ctx.message.from.id}/${ctx.message.from.id}.jpeg`}') `
         //   );
         // }
         // Clear user data
