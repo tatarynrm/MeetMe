@@ -197,7 +197,7 @@ return ctx.scene.leave();
         const existPhoto = await pool.query(
           `select * from users_photos where user_id = ${ctx.message.from.id}`
         );
-        console.log(existPhoto.rows);
+
         if (existPhoto.rows <= 0) {
           if (userData.file === "photo") {
             await pool.query(
@@ -330,7 +330,7 @@ return ctx.scene.leave();
         if (existPhoto.rows <= 0) {
           if (userData.file === "photo") {
             await pool.query(
-              `uldate users_photos set (user_id,photo_url,type) values(${
+              `insert into users_photos set (user_id,photo_url,type) values(${
                 ctx.message.from.id
               },'${`https://api.noris.tech/img/${ctx.message.from.id}/${ctx.message.from.id}.jpeg`}','photo') `
             );
