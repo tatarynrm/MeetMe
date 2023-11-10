@@ -366,7 +366,7 @@ bot.hears("🔑 Мій аккаунт", async (ctx) => {
   } else {
     await ctx.replyWithVideo(
       {
-        url: me.photo_url,
+        url: me?.photo_url,
       },
       {
         caption: message,
