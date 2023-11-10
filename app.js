@@ -19,6 +19,11 @@ const { createUser } = require("./controllers/users");
 const registrationScene = require("./scenes/registerScene");
 const likesScene = require("./scenes/likesScene");
 const { default: axios } = require("axios");
+const changeNameScene = require("./scenes/changeNameScene");
+const changeAgeScene = require("./scenes/changeAgeScene");
+const changeInfoScene = require("./scenes/changeInfoScene");
+const reverseGeocode = require("./helpers/reverseGeocode");
+const { botLikesValue } = require("./bot_functions/bot_likes");
 const public_key = "sandbox_i31110430124";
 const private_key = "sandbox_HJjraXMdCLnz3ApcEJOYCjmSgRjhsjtuvFSVmVci";
 var liqpay = new LiqPay(public_key, private_key);
@@ -37,7 +42,13 @@ app.use(
 );
 app.use("/liqpay", liqpayRouter);
 
-const stage = new Scenes.Stage([registrationScene, likesScene]);
+const stage = new Scenes.Stage([
+  registrationScene,
+  likesScene,
+  changeNameScene,
+  changeAgeScene,
+  changeInfoScene,
+]);
 
 bot.use(session());
 bot.use(stage.middleware());
@@ -73,7 +84,7 @@ const getInvoice = async (amount, username, customer) => {
     console.log(error);
   }
 };
-const users = {};
+let users = {};
 bot.start(async (ctx) => {
   createUser(ctx.message.from);
 
@@ -82,64 +93,70 @@ bot.start(async (ctx) => {
   );
 
   if (userInfo?.rows <= 0) {
-    await ctx.replyWithHTML(
-      `Вітаю!`,
-      {
-        reply_markup: {
-          keyboard: [
-            [{ text: "Створити анкету 📒" }],
-            [{ text: "Наше Comunity 👨‍👨‍👧‍👧" }],
-            [{ text: "🌐 Відкрити сайт в телеграмі" }],
-          ],
-          resize_keyboard: true,
-        },
-      }
-    );
+    await ctx.replyWithHTML(`Вітаю!`, {
+      reply_markup: {
+        keyboard: [
+          [{ text: "Створити анкету 📒" }],
+          [{ text: "Наше Comunity 👨‍👨‍👧‍👧" }],
+          [{ text: "🌐 Відкрити сайт" }],
+        ],
+        resize_keyboard: true,
+      },
+    });
   } else {
-    await ctx.replyWithHTML(
-      `Вітаю!Наша назва скоро зміниться на Enjoy Hub`,
-      {
-        reply_markup: {
-          keyboard: [
-            [{ text: "🔑 Мій аккаунт" }, { text: "👀 Дивитись анкети" }],
-            [
-              { text: "💰 Реферальне посилання" },
-              { text: "🔄 Заповнити анкету знову" },
-            ],
-            [{ text: "🐣 Зв'язок з розробником" }],
-            [{ text: "🌐 Відкрити сайт в телеграмі" }],
+    await ctx.replyWithHTML(`Вітаю!Наша назва скоро зміниться на Enjoy Hub`, {
+      reply_markup: {
+        keyboard: [
+          [{ text: "🔑 Мій аккаунт" }, { text: "👀 Дивитись анкети" }],
+          [
+            { text: "💰 Реферальне посилання" },
+            { text: "🔄 Заповнити анкету знову" },
           ],
-          resize_keyboard: true,
-        },
-      }
-    );
+          [{ text: "🐣 Зв'язок з розробником" }],
+          [{ text: "🌐 Відкрити сайт" }],
+        ],
+        resize_keyboard: true,
+      },
+    });
   }
   const userId = ctx.from.id;
   const referrerId = ctx.message.text.split(" ")[1];
 
   if (referrerId) {
     users[userId] = { referrer: referrerId };
-    await ctx.reply(
-      `Вас запросив користувач ${referrerId}\n\nВам надано 2 додаткових ❤️`
-    );
     const existReferalUsers = await pool.query(
       `select * from referals where user_id = ${userId} and referer_id =${referrerId}`
     );
+
     if (existReferalUsers.rows > 0) {
       console.log("exist");
+      return;
     }
     if (existReferalUsers.rows <= 0) {
       const res = await pool.query(`insert into referals (user_id,referer_id) 
     values(${userId},${referrerId})
    `);
+      await ctx.reply(
+        `Вас запросив користувач ${referrerId}\n\nВам надано 2 додаткових ❤️\nКористуйтесь!`
+      );
+      const addLikesToSubscriber = await pool.query(`
+  UPDATE users
+  SET likes_per_day = likes_per_day + 2
+  WHERE tg_id = ${userId}`);
       // ctx.sendMessage(referrerId,`Користувач ${userId} щойно вам надав 2 безкоштовних лайки.Користуйтесь!)`)
       await bot.telegram.sendMessage(
         referrerId,
-        `Користувач ${userId} щойно вам надав 5 безкоштовних ❤️.Користуйтесь!)`
+        `Користувач ${userId} щойно вам надав 3 безкоштовних ❤️\nКористуйтесь!)`
       );
+      const addLikesToReferer = await pool.query(`
+      UPDATE users
+      SET likes_per_day = likes_per_day + 3
+      WHERE tg_id = ${referrerId}`);
     }
+    users = {};
   } else {
     users[userId] = { referrer: null };
+    users = {};
   }
 });
 
@@ -178,13 +195,6 @@ bot.hears("distance", (ctx) => {
 let profiles = [];
 let currentProfileIndex = 0;
 let like = { user: null };
-bot.command("dev", (ctx) => ctx.scene.enter("registrationScene"));
-bot.hears("🔄 Заповнити анкету знову", async (ctx) => {
-  ctx.scene.enter("registrationScene");
-});
-bot.hears("Створити анкету 📒", async (ctx) => {
-  ctx.scene.enter("registrationScene");
-});
 
 bot.hears("👀 Дивитись анкети", async (ctx) => {
   const profiles1 = await pool.query(`
@@ -314,7 +324,7 @@ bot.hears("💰 Реферальне посилання", async (ctx) => {
   await ctx.replyWithPhoto(
     { source: photoPath },
     {
-      caption: `\n<b>Ваше унікальне реферальне посилання:</b>\n\n<i>(Натисніть щоб скопіювати)</i>\n<code>https://t.me/noris_chat_bot?start=${ctx.message.from.id}</code>\n\n
+      caption: `\n<b>Ваше унікальне реферальне посилання:</b>\n\n<i>(Натисніть щоб скопіювати)</i>\n<code>https://t.me/EnjoyHubBot?start=${ctx.message.from.id}</code>\n\n
       💰 Реферальна Програма
 
 Покликайте своїх друзів та отримайте винагороду за кожного нового учасника, які приєднається до нашої спільноти!
@@ -343,8 +353,10 @@ bot.hears("🔑 Мій аккаунт", async (ctx) => {
   WHERE a.user_id = ${ctx.message.from.id};
   `);
   const me = myAcc.rows[0];
-  console.log(me);
-  const message = `👤Ім'я: ${me?.name ? me?.name : '...'}\n\n🕐Вік: ${me?.age ? me?.age : 50}\n\n💁Інфа: ${me?.text ? me?.text : 'Немає інфи'}`;
+  console.log("MEEEEEEEEEEEEEEEEEEEEE", me);
+  const message = `👤Ім'я: ${me?.name ? me?.name : "..."}\n\n🕐Вік: ${
+    me?.age ? me?.age : 50
+  }\n\n💁Інфа: ${me?.text ? me?.text : "Немає інфи"}`;
   if (me?.type === "photo") {
     await ctx.replyWithPhoto(
       {
@@ -356,7 +368,7 @@ bot.hears("🔑 Мій аккаунт", async (ctx) => {
           keyboard: [
             [{ text: "⚙ Налаштування" }],
             [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-            [{ text: "👨‍👩‍👧‍👦 Мої реферали" }],
+            [{ text: "👨‍👩‍👧‍👦 Мої реферали" },{text:"Залишок ❤️"}],
             [{ text: "⬅️ Назад" }],
           ],
           resize_keyboard: true,
@@ -374,7 +386,7 @@ bot.hears("🔑 Мій аккаунт", async (ctx) => {
           keyboard: [
             [{ text: "⚙ Налаштування" }],
             [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-            [{ text: "👨‍👩‍👧‍👦 Мої реферали" }],
+            [{ text: "👨‍👩‍👧‍👦 Мої реферали" },{text:"Залишок ❤️"}],
             [{ text: "⬅️ Назад" }],
           ],
           resize_keyboard: true,
@@ -393,6 +405,8 @@ bot.hears("⬅️ Назад", async (ctx) => {
           { text: "💰 Реферальне посилання" },
           { text: "🔄 Заповнити анкету знову" },
         ],
+        [{ text: "🐣 Зв'язок з розробником" }],
+        [{ text: "🌐 Відкрити сайт" }],
       ],
       resize_keyboard: true,
     },
@@ -421,10 +435,8 @@ bot.hears("⚙ Налаштування", async (ctx) => {
   await ctx.reply("⚙ Налаштування", {
     reply_markup: {
       keyboard: [
-        [{ text: "🔸Змінити ім'я" }],
-        [{ text: "🔸Змінити вік" }],
+        [{ text: "🔸Змінити ім'я" }, { text: "🔸Змінити вік" }],
         [{ text: "🔸Змінити інфо про себе" }],
-        [{ text: "🔄 Заповнити анкету знову" }],
         [{ text: "⬅️ Назад" }],
       ],
       resize_keyboard: true,
@@ -479,7 +491,7 @@ bot.hears("🔑 Мій аккаунт", async (ctx) => {
           keyboard: [
             [{ text: "⚙ Налаштування" }],
             [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-            [{ text: "👨‍👩‍👧‍👦 Мої реферали" }],
+            [{ text: "👨‍👩‍👧‍👦 Мої реферали" },{text:"Залишок ❤️"}],
             [{ text: "Веб" }],
             [{ text: "⬅️ Назад" }],
           ],
@@ -498,7 +510,7 @@ bot.hears("🔑 Мій аккаунт", async (ctx) => {
           keyboard: [
             [{ text: "⚙ Налаштування" }],
             [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-            [{ text: "👨‍👩‍👧‍👦 Мої реферали" }],
+            [{ text: "👨‍👩‍👧‍👦 Мої реферали" },{text:"Залишок ❤️"}],
             [{ text: "Веб" }],
             [{ text: "⬅️ Назад" }],
           ],
@@ -521,24 +533,104 @@ bot.hears(`✔️`, async (ctx) => {
           { text: "🔄 Заповнити анкету знову" },
         ],
         [{ text: "🐣 Зв'язок з розробником" }],
-        [{ text: "🌐 Відкрити сайт в телеграмі" }],
+        [{ text: "🌐 Відкрити сайт" }],
       ],
       resize_keyboard: true,
     },
   });
 });
-bot.hears(`🌐 Відкрити сайт в телеграмі`, async (ctx) => {
+bot.hears(`🌐 Відкрити сайт`, async (ctx) => {
   ctx.reply("Наш веб сайт", {
     reply_markup: {
       keyboard: [
-        [{ text: "SITE", web_app: { url: "https://noris.tech" } }],
+        [{ text: "SITE", web_app: { url: "https://enjoyhub.space" } }],
         [{ text: "✔️" }],
       ],
+      resize_keyboard: true,
     },
   });
 });
-//
+bot.hears(`Купити 🌟 Premium`, async (ctx) => {
+  ctx.reply(
+    "Натисніть для перегляду тарифних планів",
+    Markup.inlineKeyboard([
+      Markup.button.callback("Переглянути тарифи", "premium_tarifs"),
+    ])
+  );
+});
+bot.hears(`🤖 Зв'язок з розробником`, (ctx) => {
+  ctx.reply(
+    "Напишіть свої побажання, щодо покращення , чи розширення функціоналу 🖐️ ",
+    Markup.inlineKeyboard([
+      Markup.button.callback("Написати розробнику", "all right"),
+    ])
+  );
+});
 
+// bot.action("more functions", (ctx) => {
+//   ctx.editMessageText("Розробник --- @web_developer_Ukraine");
+// });
+bot.action("premium_tarifs", async (ctx) => {
+  // ctx.editMessageText("🤖 Розробник: @web_developer_Ukraine");
+  await ctx.editMessageText(
+    `Доступні тарифні плани:
+1.Тариф Light - 50 грн\n2.Тариф Medium - 250 грн\n3.Тариф Йобтвою мать - 400 грн\n4.Тариф "Ну його на...уй" - 700 грн
+`,
+    Markup.inlineKeyboard([
+      Markup.button.callback("1", "first_tarif"),
+      Markup.button.callback("2", "second_tarif"),
+      Markup.button.callback(`3`, "third_taif"),
+      Markup.button.callback(`4`, "omg_tarif"),
+    ]).resize()
+  );
+});
+bot.action("first_tarif", async (ctx) => {
+  await ctx.reply("eqwlewqllewq", {
+    reply_markup: {
+      keyboard: [
+        [{ text: "Оплатити Тариф Light" }],
+        [{ text: "🔑 Мій аккаунт" }],
+      ],
+      resize_keyboard: true,
+    },
+  });
+});
+bot.action("second_tarif", async (ctx) => {
+  await ctx.reply("eqwlewqllewq", {
+    reply_markup: {
+      keyboard: [
+        [{ text: "Оплатити Тариф Medium" }],
+        [{ text: "🔑 Мій аккаунт" }],
+      ],
+      resize_keyboard: true,
+    },
+  });
+});
+bot.action("third_taif", async (ctx) => {
+  await ctx.reply("eqwlewqllewq", {
+    reply_markup: {
+      keyboard: [
+        [{ text: "Оплатити Тариф Йобтвою мать" }],
+        [{ text: "🔑 Мій аккаунт" }],
+      ],
+      resize_keyboard: true,
+    },
+  });
+});
+bot.action("omg_tarif", async (ctx) => {
+  await ctx.reply("eqwlewqllewq", {
+    reply_markup: {
+      keyboard: [
+        [{ text: `Оплатити Тариф "Ну його на...уй"` }],
+        [{ text: "🔑 Мій аккаунт" }],
+      ],
+      resize_keyboard: true,
+    },
+  });
+});
+
+//
+// Тариф Light 50 грн
 // const sendMessageToUsers = async ()=>{
 //   try {
 //     const result = await pool.query(`select * from users`);
@@ -553,6 +645,121 @@ bot.hears(`🌐 Відкрити сайт в телеграмі`, async (ctx) =>
 //   }
 // }
 // sendMessageToUsers()
+
+// SCENES ENTER
+
+bot.hears("🔄 Заповнити анкету знову", async (ctx) => {
+  ctx.scene.enter("registrationScene");
+});
+bot.hears("Створити анкету 📒", async (ctx) => {
+  ctx.scene.enter("registrationScene");
+});
+bot.hears("🔸Змінити ім'я", async (ctx) => {
+  ctx.scene.enter("changeNameScene");
+});
+bot.hears("🔸Змінити вік", async (ctx) => {
+  ctx.scene.enter("changeAgeScene");
+});
+bot.hears("🔸Змінити інфо про себе", async (ctx) => {
+  ctx.scene.enter("changeInfoScene");
+});
+
+bot.hears("Локація", (ctx) => {
+  const chatId = ctx.chat.id;
+
+  // Creating a button that requests geolocation
+  const requestLocationButton = Markup.button.locationRequest(
+    "Надіслати свою локацію 📍"
+  );
+
+  // Creating a keyboard with the location button
+  const keyboard = Markup.keyboard([requestLocationButton]).resize();
+
+  // Sending a message with the keyboard
+  ctx.reply(
+    "Натисніть на кнопку Надіслати свою локацію 📍,щоб ми могли підібрати анкети, які знаходяться якомога ближче до Вас",
+    keyboard
+  );
+});
+// https://maps.googleapis.com/maps/api/place/details/json?language=uk&key=AIzaSyCL4bmZk4wwWYECFCW2wqt7X-yjU9iPG2o&place_id=${zavInfo.value.place_id}
+// Handling location updates
+bot.on("location", async (ctx) => {
+  const lattitude = ctx.message.location.latitude;
+  const longitude = ctx.message.location.longitude;
+
+  // Handle the received location
+  const address = await reverseGeocode(lattitude, longitude);
+  const userLocation = address.address_components;
+  const cityFind = userLocation.filter((item) => {
+    return item.types.includes("locality") & item.types.includes("political");
+  });
+  const streetFind = userLocation.filter((item) => {
+    return item.types.includes("route");
+  });
+  const streetNumberFind = userLocation.filter((item) => {
+    return item.types.includes("street_number");
+  });
+  const city = cityFind[0].long_name;
+  const street = streetFind[0].long_name;
+  const streetNumber = streetNumberFind[0].long_name;
+  const lat = address.geometry.location.lat;
+  const long = address.geometry.location.lng;
+
+  console.log(city, street.substring(7), streetNumber);
+
+  const userLoc = await pool.query(
+    `select * from users_info where user_id =${ctx.message.from.id}`
+  );
+
+  console.log("addressss", address);
+  if (userLoc.rows <= 0) {
+    const insertQuery =
+      "INSERT INTO users_info (city, street, street_number, lat, long) VALUES ($1, $2, $3, $4, $5)";
+    const values = [
+      city,
+      street,
+      streetNumber,
+      parseFloat(lat),
+      parseFloat(long),
+    ];
+
+    // Execute the insert query
+    pool.query(insertQuery, values, (err, result) => {
+      if (err) {
+        console.error("Error executing query", err);
+      } else {
+        console.log("Insert successful:", result.rowCount, "row inserted");
+      }
+    });
+  } else {
+    const updateQuery =
+      "UPDATE users_info SET city = $1, street = $2, street_number = $3, lat = $4, long = $5 WHERE user_id = $6";
+    const values = [
+      city,
+      street,
+      streetNumber,
+      parseFloat(lat),
+      parseFloat(long),
+      ctx.message.from.id,
+    ];
+
+    // Execute the update query
+    pool.query(updateQuery, values, (err, result) => {
+      if (err) {
+        console.error("Error executing query", err);
+      } else {
+        console.log("Update successful:", result.rowCount, "rows updated");
+      }
+    });
+  }
+
+  await ctx.reply(`Ваше місцезнаходження: ${city}`);
+});
+
+bot.hears('Залишок ❤️',async ctx =>{
+  botLikesValue(ctx)
+})
+// SCENES ENTER
 bot.launch();
 process.once("SIGINT", () => bot.stop("SIGINT"));
 process.once("SIGTERM", () => bot.stop("SIGTERM"));
