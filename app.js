@@ -343,7 +343,7 @@ bot.hears("🔑 Мій аккаунт", async (ctx) => {
   `);
   const me = myAcc.rows[0];
   console.log(me);
-  const message = `👤Ім'я: ${me.name}\n\n🕐Вік: ${me.age}\n\n💁Інфа: ${me.text}`;
+  const message = `👤Ім'я: ${me?.name ? me?.name : '...'}\n\n🕐Вік: ${me?.age ? me?.age : 50}\n\n💁Інфа: ${me?.text ? me?.text : 'Немає інфи'}`;
   if (me.type === "photo") {
     await ctx.replyWithPhoto(
       {
