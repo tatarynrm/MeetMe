@@ -96,7 +96,7 @@ bot.start(async (ctx) => {
     );
   } else {
     await ctx.replyWithHTML(
-      `Вітаю в боті знайомств MeetMe.\nПерший повномасштабний український бот знайомств в телеграмі!`,
+      `Вітаю!Наша назва скоро зміниться на Enjoy Hub`,
       {
         reply_markup: {
           keyboard: [
