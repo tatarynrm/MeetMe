@@ -13,7 +13,7 @@ const folderName = "img"; // Назва папки
 const allPhoto = [];
 const fullPath = path.join(__dirname, folderName); // Створення повного шляху
 
-console.log("Шлях до папки:", fullPath);
+// console.log("Шлях до папки:", fullPath);
 const rootPath = process.cwd();
 
 const registrationScene = new Scenes.WizardScene(
@@ -210,6 +210,19 @@ return ctx.scene.leave();
               `insert into users_photos (user_id,photo_url,type) values(${
                 ctx.message.from.id
               },'${`https://api.noris.tech/img/${ctx.message.from.id}/${ctx.message.from.id}.mp4`}','video') `
+            );
+          }
+        }
+        if (existPhoto.rows > 0) {
+          if (userData.file === "photo") {
+            await pool.query(
+              `UPDATE users_photos SET photo_url = $1 WHERE user_id = $2 AND type = 'photo'`,
+              [`https://api.noris.tech/img/${ctx.message.from.id}/${ctx.message.from.id}.jpeg'`, ctx.message.from.id]
+            );
+          } else {
+            await pool.query(
+              `UPDATE users_photos SET photo_url = $1 WHERE user_id = $2 AND type = 'video'`,
+              [`https://api.noris.tech/img/${ctx.message.from.id}/${ctx.message.from.id}.mp4'`, ctx.message.from.id]
             );
           }
         }
