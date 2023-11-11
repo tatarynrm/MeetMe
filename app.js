@@ -280,7 +280,7 @@ async function sendProfile(ctx, like) {
     currentProfile?.name ? currentProfile?.name : null
   }\n\n🕤 ${
     currentProfile.age ? currentProfile.age : null
-  }р. / 📍- ${getDistanceString(myPoint, userPoint) && ""} \n\n📔 ${
+  }р. / 📍- ${getDistanceString(myPoint, userPoint) ? getDistanceString(myPoint, userPoint) : " "} \n\n📔 ${
     currentProfile?.text ? currentProfile?.text : null
   }`;
 
