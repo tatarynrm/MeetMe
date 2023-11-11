@@ -162,6 +162,7 @@ try {
   }
 } catch (error) {
   console.log(error);
+  await ctx.reply('Щось пішло не по плану')
 }
 });
 
