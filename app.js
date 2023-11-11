@@ -1,6 +1,6 @@
 require("dotenv").config();
 const { Telegraf, Scenes, session, Markup } = require("telegraf");
-const bot = new Telegraf(process.env.BOT_TOKEN,{handlerTimeout: 9_000_000});
+const bot = new Telegraf(process.env.BOT_TOKEN, { handlerTimeout: 9_000_000 });
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
@@ -15,8 +15,8 @@ const pool = require("./db/pool");
 const geolib = require("geolib");
 const iconv = require("iconv-lite");
 const { createUser } = require("./controllers/users");
-const moment = require('moment');
-require('moment/locale/uk');
+const moment = require("moment");
+require("moment/locale/uk");
 const registrationScene = require("./scenes/registerScene");
 const likesScene = require("./scenes/likesScene");
 const { default: axios } = require("axios");
@@ -88,86 +88,85 @@ const getInvoice = async (amount, username, customer) => {
 };
 let users = {};
 
-
 bot.start(async (ctx) => {
-try {
- await createUser(ctx.message.from);
+  try {
+    await createUser(ctx.message.from);
 
-  const userInfo = await pool.query(
-    `select * from users_info where user_id = ${ctx.message.from.id}`
-  );
-
-  if (userInfo?.rows <= 0) {
-    await ctx.replyWithHTML(`Вітаю!`, {
-      reply_markup: {
-        keyboard: [
-          [{ text: "Створити анкету 📒" }],
-          [{ text: "🌐 Відкрити сайт" }],
-        ],
-        resize_keyboard: true,
-      },
-    });
-  } else {
-    await ctx.replyWithHTML(`Вітаю !`, {
-      reply_markup: {
-        keyboard: [
-          [{ text: "🔑 Мій аккаунт" }, { text: "👀 Дивитись анкети" }],
-          [
-            { text: "💰 Реферальне посилання" },
-            { text: "🔄 Заповнити анкету знову" },
-          ],
-          [{ text: "🐣 Зв'язок з розробником" }],
-          [{ text: "🌐 Відкрити сайт" }],
-        ],
-        resize_keyboard: true,
-      },
-    });
-  }
-  const userId = ctx.from.id;
-  const referrerId = ctx.message.text.split(" ")[1];
-
-  if (referrerId) {
-    users[userId] = { referrer: referrerId };
-    const existReferalUsers = await pool.query(
-      `select * from referals where user_id = ${userId} and referer_id =${referrerId}`
+    const userInfo = await pool.query(
+      `select * from users_info where user_id = ${ctx.message.from.id}`
     );
 
-    if (existReferalUsers.rows > 0) {
-      console.log("exist");
-      return;
+    if (userInfo?.rows <= 0) {
+      await ctx.replyWithHTML(`Вітаю!`, {
+        reply_markup: {
+          keyboard: [
+            [{ text: "Створити анкету 📒" }],
+            [{ text: "🌐 Відкрити сайт" }],
+          ],
+          resize_keyboard: true,
+        },
+      });
+    } else {
+      await ctx.replyWithHTML(`Вітаю !`, {
+        reply_markup: {
+          keyboard: [
+            [{ text: "🔑 Мій аккаунт" }, { text: "👀 Дивитись анкети" }],
+            [
+              { text: "💰 Реферальне посилання" },
+              { text: "🔄 Заповнити анкету знову" },
+            ],
+            [{ text: "🐣 Зв'язок з розробником" }],
+            [{ text: "🌐 Відкрити сайт" }],
+          ],
+          resize_keyboard: true,
+        },
+      });
     }
-    if (existReferalUsers.rows <= 0) {
-      const res = await pool.query(`insert into referals (user_id,referer_id) 
-    values(${userId},${referrerId})
-   `);
-      await ctx.reply(
-        `Вас запросив користувач ${referrerId}\n\nВам надано 2 додаткових ❤️\nКористуйтесь!`
-      );
-      await bot.telegram.sendMessage(
-        referrerId,
-        `Користувач ${userId} щойно вам надав 3 безкоштовних ❤️\nКористуйтесь!)`
+    const userId = ctx.from.id;
+    const referrerId = ctx.message.text.split(" ")[1];
+
+    if (referrerId) {
+      users[userId] = { referrer: referrerId };
+      const existReferalUsers = await pool.query(
+        `select * from referals where user_id = ${userId} and referer_id =${referrerId}`
       );
 
-      const addLikesToSubscriber = await pool.query(`
+      if (existReferalUsers.rows > 0) {
+        console.log("exist");
+        return;
+      }
+      if (existReferalUsers.rows <= 0) {
+        const res = await pool.query(`insert into referals (user_id,referer_id) 
+    values(${userId},${referrerId})
+   `);
+        await ctx.reply(
+          `Вас запросив користувач ${referrerId}\n\nВам надано 2 додаткових ❤️\nКористуйтесь!`
+        );
+        await bot.telegram.sendMessage(
+          referrerId,
+          `Користувач ${userId} щойно вам надав 3 безкоштовних ❤️\nКористуйтесь!)`
+        );
+
+        const addLikesToSubscriber = await pool.query(`
   UPDATE users
   SET likes_per_day = likes_per_day + 2
   WHERE tg_id = ${userId}`);
-      // ctx.sendMessage(referrerId,`Користувач ${userId} щойно вам надав 2 безкоштовних лайки.Користуйтесь!)`)
- 
-      const addLikesToReferer = await pool.query(`
+        // ctx.sendMessage(referrerId,`Користувач ${userId} щойно вам надав 2 безкоштовних лайки.Користуйтесь!)`)
+
+        const addLikesToReferer = await pool.query(`
       UPDATE users
       SET likes_per_day = likes_per_day + 3
       WHERE tg_id = ${referrerId}`);
+      }
+      users = {};
+    } else {
+      users[userId] = { referrer: null };
+      users = {};
     }
-    users = {};
-  } else {
-    users[userId] = { referrer: null };
-    users = {};
+  } catch (error) {
+    console.log(error);
+    // await ctx.reply('Щось пішло не по плану')
   }
-} catch (error) {
-  console.log(error);
-  // await ctx.reply('Щось пішло не по плану')
-}
 });
 
 bot.hears("Преміум 1 тиждень", async (ctx) => {
@@ -207,13 +206,36 @@ let currentProfileIndex = 0;
 let like = { user: null };
 
 bot.hears("👀 Дивитись анкети", async (ctx) => {
-  const profiles1 = await pool.query(`
- SELECT a.*, b.photo_url,b.type
- FROM users_info AS a
- LEFT JOIN users_photos AS b
- ON a.user_id = b.user_id 
- where a.user_id != ${ctx.message.from.id}
- `);
+  const myParams = await pool.query(
+    `select * from users_info where user_id = ${ctx.message.from.id}`
+  );
+  const paramsSex = myParams.rows[0].looking;
+  let profiles1 = [];
+  if (paramsSex === "M") {
+    profiles1 = await pool.query(`
+SELECT a.*, b.photo_url,b.type
+FROM users_info AS a
+LEFT JOIN users_photos AS b
+ON a.user_id = b.user_id 
+where a.user_id != ${ctx.message.from.id} and a.sex = 'M'
+`);
+  } else if (paramsSex === "W") {
+    profiles1 = await pool.query(`
+SELECT a.*, b.photo_url,b.type
+FROM users_info AS a
+LEFT JOIN users_photos AS b
+ON a.user_id = b.user_id 
+where a.user_id != ${ctx.message.from.id} and a.sex = 'W'
+`);
+  } else {
+    profiles1 = await pool.query(`
+  SELECT a.*, b.photo_url,b.type
+  FROM users_info AS a
+  LEFT JOIN users_photos AS b
+  ON a.user_id = b.user_id 
+  where a.user_id != ${ctx.message.from.id}`);
+  }
+
   const usersProfile = profiles1.rows;
   if (usersProfile.length > 0) {
     profiles.push(...usersProfile);
@@ -223,7 +245,6 @@ bot.hears("👀 Дивитись анкети", async (ctx) => {
       ctx.reply("Більше немає анкет для перегляду.");
     }
   } else {
-
   }
 });
 async function sendProfile(ctx, like) {
@@ -418,7 +439,11 @@ bot.command("🔑 Мій аккаунт", async (ctx) => {
           },
         }
       );
-      await ctx.reply(`Ти ${me.sex === 'M' ? 'приєднався' : "приєдналась"} до нас\n📅${moment(me.created_at).format('LLL')} год.`)
+      await ctx.reply(
+        `Ти ${me.sex === "M" ? "приєднався" : "приєдналась"} до нас\n📅${moment(
+          me.created_at
+        ).format("LLL")} год.`
+      );
     } else {
       await ctx.replyWithVideo(
         {
