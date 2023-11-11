@@ -88,6 +88,7 @@ const getInvoice = async (amount, username, customer) => {
 };
 let users = {};
 bot.start(async (ctx) => {
+try {
   createUser(ctx.message.from);
 
   const userInfo = await pool.query(
@@ -159,6 +160,9 @@ bot.start(async (ctx) => {
     users[userId] = { referrer: null };
     users = {};
   }
+} catch (error) {
+  console.log(error);
+}
 });
 
 bot.hears("Преміум 1 тиждень", async (ctx) => {
