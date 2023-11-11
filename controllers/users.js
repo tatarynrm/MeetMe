@@ -1,25 +1,6 @@
 const pool = require("../db/pool");
 
-async function checkExistUser (user){
-    try {
-        const client = await pool.connect();
-    
-        try {
-          const existUser = await client.query(
-            `select * from users where tg_id = ${user.id}`
-          );
-          // Define the SQL query for the insertion
-
-        } finally {
-
-          client.release();
-        }
-      } catch (error) {
-        console.error("Error inserting data:", error);
-      }
-}
-
-async function createUser(user) {
+async function checkExistUser(user) {
   try {
     const client = await pool.connect();
 
@@ -27,12 +8,26 @@ async function createUser(user) {
       const existUser = await client.query(
         `select * from users where tg_id = ${user.id}`
       );
-      console.log(existUser.rows);
       // Define the SQL query for the insertion
-      if (existUser.rows > 0) {
-        return 
-      } else {
-        const text =
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error("Error inserting data:", error);
+  }
+}
+
+async function createUser(user) {
+  const client = await pool.connect();
+
+  try {
+    const existUser = await client.query(
+      `select * from users where tg_id = ${user.id}`
+    );
+    console.log(existUser.rows);
+    // Define the SQL query for the insertion
+    if (existUser.rows < 0) {
+      const text =
         "INSERT INTO users (first_name, username,tg_id) VALUES ($1, $2,$3)";
       const values = [
         user.first_name ? user.first_name : null,
@@ -43,11 +38,8 @@ async function createUser(user) {
       // Execute the SQL query to insert data
       const result = await client.query(text, values);
       console.log("Data inserted successfully");
-      }
-        
-    } finally {
-      // Release the client back to the pool
-      // client.release();
+    } else {
+      return null;
     }
   } catch (error) {
     console.error("Error inserting data:", error);

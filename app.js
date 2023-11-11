@@ -15,7 +15,8 @@ const pool = require("./db/pool");
 const geolib = require("geolib");
 const iconv = require("iconv-lite");
 const { createUser } = require("./controllers/users");
-
+const moment = require('moment');
+require('moment/locale/uk');
 const registrationScene = require("./scenes/registerScene");
 const likesScene = require("./scenes/likesScene");
 const { default: axios } = require("axios");
@@ -24,6 +25,7 @@ const changeAgeScene = require("./scenes/changeAgeScene");
 const changeInfoScene = require("./scenes/changeInfoScene");
 const reverseGeocode = require("./helpers/reverseGeocode");
 const { botLikesValue } = require("./bot_functions/bot_likes");
+const getDistanceString = require("./helpers/getKilomiters");
 const public_key = "sandbox_i31110430124";
 const private_key = "sandbox_HJjraXMdCLnz3ApcEJOYCjmSgRjhsjtuvFSVmVci";
 var liqpay = new LiqPay(public_key, private_key);
@@ -103,7 +105,7 @@ bot.start(async (ctx) => {
       },
     });
   } else {
-    await ctx.replyWithHTML(`Вітаю!Наша назва скоро зміниться на Enjoy Hub`, {
+    await ctx.replyWithHTML(`Вітаю !`, {
       reply_markup: {
         keyboard: [
           [{ text: "🔑 Мій аккаунт" }, { text: "👀 Дивитись анкети" }],
@@ -176,21 +178,21 @@ bot.hears("Преміум 1 тиждень", async (ctx) => {
   });
 });
 
-bot.hears("distance", (ctx) => {
-  // Координати першої точки (наприклад, Київ)
-  const pointA = { latitude: 50.4501, longitude: 30.5234 };
+// bot.hears("distance", (ctx) => {
+//   // Координати першої точки (наприклад, Київ)
+//   const pointA = { latitude: 50.4501, longitude: 30.5234 };
 
-  // Координати другої точки (наприклад, Львів)
-  const pointB = { latitude: 49.8383, longitude: 24.0232 };
+//   // Координати другої точки (наприклад, Львів)
+//   const pointB = { latitude: 49.8383, longitude: 24.0232 };
 
-  // Обчислити відстань між точками в метрах
-  const distance = geolib.getDistance(pointA, pointB);
-  ctx.reply(
-    `Відстань між точкою A і точкою B: ${geolib
-      .convertDistance(distance, "km")
-      .toFixed(1)}км`
-  );
-});
+//   // Обчислити відстань між точками в метрах
+//   const distance = geolib.getDistance(pointA, pointB);
+//   ctx.reply(
+//     `Відстань між точкою A і точкою B: ${geolib
+//       .convertDistance(distance, "km")
+//       .toFixed(1)}км`
+//   );
+// });
 let profiles = [];
 let currentProfileIndex = 0;
 let like = { user: null };
@@ -204,30 +206,53 @@ bot.hears("👀 Дивитись анкети", async (ctx) => {
  where a.user_id != ${ctx.message.from.id}
  `);
   const usersProfile = profiles1.rows;
-  if (usersProfile.length > 0 ) {
+  if (usersProfile.length > 0) {
     profiles.push(...usersProfile);
     if (currentProfileIndex < profiles.length) {
       sendProfile(ctx);
     } else {
       ctx.reply("Більше немає анкет для перегляду.");
     }
-  }else {
+  } else {
     ctx.reply("Упссссс....Щось пішло не так");
   }
-
 });
 async function sendProfile(ctx, like) {
+  const myLocation = await pool.query(
+    `select lat,long from users_info where user_id =${ctx.message.from.id}`
+  );
+  const myLoc = myLocation.rows[0];
   const currentProfile = profiles[currentProfileIndex];
-  const message = `Name: ${
-    currentProfile?.name ? currentProfile?.name : null
-  }\nAge: ${currentProfile.age ? currentProfile.age : null}\nInfo: ${
-    currentProfile?.text ? currentProfile?.text : null
-  }`;
-  console.log(currentProfile);
   const keyboard = Markup.inlineKeyboard([
     Markup.button.callback("Option 1", "option1"),
     Markup.button.callback("Option 2", "option2"),
   ]);
+
+  const myPoint = { latitude: myLoc.lat, longitude: myLoc.long };
+  const userPoint = {
+    latitude: currentProfile.lat,
+    longitude: currentProfile.long,
+  };
+
+  // // Обчислити відстань між точками в метрах
+  // const distancion = geolib.getDistance(myPoint, userPoint);
+  // ctx.reply(
+  //   `Відстань між точкою A і точкою B: ${geolib
+  //     .convertDistance(distancion, "km")
+  //     .toFixed(1)}км`
+  // );
+  const distanceInMeters = geolib.getDistance(myPoint, userPoint);
+
+  // Convert the distance from meters to kilometers
+  const distanceInKilometers = distanceInMeters / 1000;
+
+  const message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
+    currentProfile?.name ? currentProfile?.name : null
+  }\n\n🕤 ${
+    currentProfile.age ? currentProfile.age : null
+  }р. / 📍- ${getDistanceString(myPoint, userPoint)} \n\n📔 ${
+    currentProfile?.text ? currentProfile?.text : null
+  }`;
 
   if (currentProfile.type === "photo") {
     await ctx.replyWithPhoto(
@@ -290,6 +315,8 @@ bot.hears("❤️", async (ctx) => {
             { text: "💰 Реферальне посилання" },
             { text: "🔄 Заповнити анкету знову" },
           ],
+          [{ text: "🐣 Зв'язок з розробником" }],
+          [{ text: "🌐 Відкрити сайт" }],
         ],
         resize_keyboard: true,
       },
@@ -314,6 +341,8 @@ bot.hears("👎", async (ctx) => {
             { text: "💰 Реферальне посилання" },
             { text: "🔄 Заповнити анкету знову" },
           ],
+          [{ text: "🐣 Зв'язок з розробником" }],
+          [{ text: "🌐 Відкрити сайт" }],
         ],
         resize_keyboard: true,
       },
@@ -355,51 +384,52 @@ bot.hears("🔑 Мій аккаунт", async (ctx) => {
   WHERE a.user_id = ${ctx.message.from.id};
   `);
   const me = myAcc.rows[0];
-if (me === undefined || me === null ) {
-  await ctx.reply('Упссс.....щось пішло не так....')
-}else {
-   
-  const message = `👤Ім'я: ${me?.name ? me?.name : "..."}\n\n🕐Вік: ${
-    me?.age ? me?.age : 50
-  }\n\n💁Інфа: ${me?.text ? me?.text : "Немає інфи"}`;
-  if (me?.type === "photo") {
-    await ctx.replyWithPhoto(
-      {
-        url: me.photo_url,
-      },
-      {
-        caption: message,
-        reply_markup: {
-          keyboard: [
-            [{ text: "⚙ Налаштування" }],
-            [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-            [{ text: "👨‍👩‍👧‍👦 Мої реферали" },{text:"Залишок ❤️"}],
-            [{ text: "⬅️ Назад" }],
-          ],
-          resize_keyboard: true,
-        },
-      }
-    );
+  console.log(me);
+  if (me === undefined || me === null || me.type === null) {
+    await ctx.reply("Упссс.....щось пішло не так....");
   } else {
-    await ctx.replyWithVideo(
-      {
-        url: me?.photo_url,
-      },
-      {
-        caption: message,
-        reply_markup: {
-          keyboard: [
-            [{ text: "⚙ Налаштування" }],
-            [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-            [{ text: "👨‍👩‍👧‍👦 Мої реферали" },{text:"Залишок ❤️"}],
-            [{ text: "⬅️ Назад" }],
-          ],
-          resize_keyboard: true,
+    const message = `👤Ім'я: ${me?.name ? me?.name : "..."}\n\n🕐Вік: ${
+      me?.age ? me?.age : 50
+    }\n\n💁Інфа: ${me?.text ? me?.text : "Немає інфи"}`;
+    if (me?.type === "photo") {
+      await ctx.replyWithPhoto(
+        {
+          url: me.photo_url,
         },
-      }
-    );
+        {
+          caption: message,
+          reply_markup: {
+            keyboard: [
+              [{ text: "⚙ Налаштування" }],
+              [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
+              [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
+              [{ text: "⬅️ Назад" }],
+            ],
+            resize_keyboard: true,
+          },
+        }
+      );
+      await ctx.reply(`Ти ${me.sex === 'M' ? 'приєднався' : "приєдналась"} до нас\n📅${moment(me.created_at).format('LLL')} год.`)
+    } else {
+      await ctx.replyWithVideo(
+        {
+          url: me?.photo_url,
+        },
+        {
+          caption: message,
+          reply_markup: {
+            keyboard: [
+              [{ text: "⚙ Налаштування" }],
+              [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
+              [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
+              [{ text: "⬅️ Назад" }],
+            ],
+            resize_keyboard: true,
+          },
+        }
+      );
+    }
   }
-}
 });
 
 bot.hears("⬅️ Назад", async (ctx) => {
@@ -497,7 +527,7 @@ bot.hears("🔑 Мій аккаунт", async (ctx) => {
           keyboard: [
             [{ text: "⚙ Налаштування" }],
             [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-            [{ text: "👨‍👩‍👧‍👦 Мої реферали" },{text:"Залишок ❤️"}],
+            [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
             [{ text: "Веб" }],
             [{ text: "⬅️ Назад" }],
           ],
@@ -516,7 +546,7 @@ bot.hears("🔑 Мій аккаунт", async (ctx) => {
           keyboard: [
             [{ text: "⚙ Налаштування" }],
             [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-            [{ text: "👨‍👩‍👧‍👦 Мої реферали" },{text:"Залишок ❤️"}],
+            [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
             [{ text: "Веб" }],
             [{ text: "⬅️ Назад" }],
           ],
@@ -670,11 +700,6 @@ bot.hears("🔸Змінити інфо про себе", async (ctx) => {
   ctx.scene.enter("changeInfoScene");
 });
 
-
-
-
-
-
 bot.hears("Локація", (ctx) => {
   const chatId = ctx.chat.id;
 
@@ -767,9 +792,9 @@ bot.on("location", async (ctx) => {
   await ctx.reply(`Ваше місцезнаходження: ${city}`);
 });
 
-bot.hears('Залишок ❤️',async ctx =>{
-  botLikesValue(ctx)
-})
+bot.hears("Залишок ❤️", async (ctx) => {
+  botLikesValue(ctx);
+});
 // SCENES ENTER
 bot.launch();
 process.once("SIGINT", () => bot.stop("SIGINT"));
