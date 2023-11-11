@@ -99,7 +99,7 @@ const saveLocationInTheEnd = async (ctx, lattitude, longitude) => {
     const userLoc = await pool.query(
       `select * from users_info where user_id =${ctx.message.from.id}`
     );
-
+const onlyStreet = street.substring(7)
     console.log("addressss", address);
     if (userLoc.rows <= 0) {
       const insertQuery =
@@ -107,7 +107,8 @@ const saveLocationInTheEnd = async (ctx, lattitude, longitude) => {
       const values = [
         city,
         street,
-        streetNumber,
+        // streetNumber,
+        onlyStreet,
         parseFloat(lat),
         parseFloat(long),
       ];
@@ -126,7 +127,9 @@ const saveLocationInTheEnd = async (ctx, lattitude, longitude) => {
       const values = [
         city,
         street,
-        streetNumber,
+        // streetNumber,
+        onlyStreet,
+        // street.substring(7),
         parseFloat(lat),
         parseFloat(long),
         ctx.message.from.id,

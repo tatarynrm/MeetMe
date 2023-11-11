@@ -143,15 +143,17 @@ try {
       await ctx.reply(
         `Вас запросив користувач ${referrerId}\n\nВам надано 2 додаткових ❤️\nКористуйтесь!`
       );
+      await bot.telegram.sendMessage(
+        referrerId,
+        `Користувач ${userId} щойно вам надав 3 безкоштовних ❤️\nКористуйтесь!)`
+      );
+
       const addLikesToSubscriber = await pool.query(`
   UPDATE users
   SET likes_per_day = likes_per_day + 2
   WHERE tg_id = ${userId}`);
       // ctx.sendMessage(referrerId,`Користувач ${userId} щойно вам надав 2 безкоштовних лайки.Користуйтесь!)`)
-      await bot.telegram.sendMessage(
-        referrerId,
-        `Користувач ${userId} щойно вам надав 3 безкоштовних ❤️\nКористуйтесь!)`
-      );
+ 
       const addLikesToReferer = await pool.query(`
       UPDATE users
       SET likes_per_day = likes_per_day + 3
@@ -221,7 +223,7 @@ bot.hears("👀 Дивитись анкети", async (ctx) => {
       ctx.reply("Більше немає анкет для перегляду.");
     }
   } else {
-    ctx.reply("Упссссс....Щось пішло не так");
+
   }
 });
 async function sendProfile(ctx, like) {
