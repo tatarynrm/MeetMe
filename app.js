@@ -276,6 +276,7 @@ async function sendProfile(ctx, like) {
   // Convert the distance from meters to kilometers
   const distanceInKilometers = distanceInMeters / 1000;
 
+ if (myPoint & userPoint) {
   const message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
     currentProfile?.name ? currentProfile?.name : null
   }\n\n🕤 ${
@@ -283,6 +284,9 @@ async function sendProfile(ctx, like) {
   }р. / 📍- ${getDistanceString(myPoint, userPoint) ? getDistanceString(myPoint, userPoint) : " "} \n\n📔 ${
     currentProfile?.text ? currentProfile?.text : null
   }`;
+ }else {
+  return null
+ }
 
   if (currentProfile.type === "photo") {
     await ctx.replyWithPhoto(
