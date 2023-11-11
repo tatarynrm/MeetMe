@@ -89,7 +89,7 @@ const getInvoice = async (amount, username, customer) => {
 let users = {};
 bot.start(async (ctx) => {
 try {
-  createUser(ctx.message.from);
+ await createUser(ctx.message.from);
 
   const userInfo = await pool.query(
     `select * from users_info where user_id = ${ctx.message.from.id}`
