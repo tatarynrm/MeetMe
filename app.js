@@ -275,9 +275,9 @@ async function sendProfile(ctx, like) {
 
   // Convert the distance from meters to kilometers
   const distanceInKilometers = distanceInMeters / 1000;
-
+let message = '';
  if (myPoint & userPoint) {
-  const message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
+   message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
     currentProfile?.name ? currentProfile?.name : null
   }\n\n🕤 ${
     currentProfile.age ? currentProfile.age : null
@@ -285,7 +285,13 @@ async function sendProfile(ctx, like) {
     currentProfile?.text ? currentProfile?.text : null
   }`;
  }else {
-  return null
+  message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
+    currentProfile?.name ? currentProfile?.name : null
+  }\n\n🕤 ${
+    currentProfile.age ? currentProfile.age : null
+  }р. \n\n📔 ${
+    currentProfile?.text ? currentProfile?.text : null
+  }`;
  }
 
   if (currentProfile.type === "photo") {
