@@ -1,6 +1,6 @@
 require("dotenv").config();
 const { Telegraf, Scenes, session, Markup } = require("telegraf");
-const bot = new Telegraf(process.env.BOT_TOKEN);
+const bot = new Telegraf(process.env.BOT_TOKEN,{handlerTimeout: 9_000_000});
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
@@ -87,6 +87,8 @@ const getInvoice = async (amount, username, customer) => {
   }
 };
 let users = {};
+
+
 bot.start(async (ctx) => {
 try {
  await createUser(ctx.message.from);
@@ -162,7 +164,7 @@ try {
   }
 } catch (error) {
   console.log(error);
-  await ctx.reply('Щось пішло не по плану')
+  // await ctx.reply('Щось пішло не по плану')
 }
 });
 
@@ -381,7 +383,7 @@ bot.hears("💰 Реферальне посилання", async (ctx) => {
   );
 });
 
-bot.hears("🔑 Мій аккаунт", async (ctx) => {
+bot.command("🔑 Мій аккаунт", async (ctx) => {
   const myAcc = await pool.query(`
   SELECT a.*, b.photo_url,b.type
   FROM users_info AS a
