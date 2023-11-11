@@ -106,9 +106,8 @@ const onlyStreet = street.substring(7)
         "INSERT INTO users_info (city, street, street_number, lat, long) VALUES ($1, $2, $3, $4, $5)";
       const values = [
         city,
-        street,
-        // streetNumber,
-        onlyStreet,
+        onlyStreet,,
+        streetNumber,
         parseFloat(lat),
         parseFloat(long),
       ];
@@ -126,10 +125,8 @@ const onlyStreet = street.substring(7)
         "UPDATE users_info SET city = $1, street = $2, street_number = $3, lat = $4, long = $5 WHERE user_id = $6";
       const values = [
         city,
-        street,
-        // streetNumber,
-        onlyStreet,
-        // street.substring(7),
+        onlyStreet,,
+        streetNumber,
         parseFloat(lat),
         parseFloat(long),
         ctx.message.from.id,
