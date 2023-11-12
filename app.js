@@ -1093,13 +1093,13 @@ WHERE ARRAY_LENGTH(
 `);
   console.log(result.rows);
   let message = "";
-  const mappedReferals = result.rows[0].children.map((item, idx) => {
+  const mappedReferals = result.rows[0]?.children?.map((item, idx) => {
     message += `${idx + 1} - @${item}\n`;
   });
 
-  if (result.rows[0].children.length > 0) {
+  if (result.rows[0]?.children?.length > 0) {
     await ctx.reply(`Список ваших рефералів:\n${message}`);
-  } else if (result.rows[0].children.length > 199) {
+  } else if (result.rows[0]?.children?.length > 199) {
     await ctx.reply(
       `Список ваших рефералів:\nУ вас понад 200+ рефералів.Ми фізично не можемо вивести даний список.Ви зможете переглянути усіх рефералів на сайті.`
     );
