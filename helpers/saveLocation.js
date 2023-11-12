@@ -26,19 +26,20 @@ const saveLocation = async (ctx) => {
     console.log(city, street.substring(7), streetNumber);
 
     const userLoc = await pool.query(
-      `select * from users_info where user_id =${ctx.message.from.id}`
+      `select * from users_location where user_id =${ctx.message.from.id}`
     );
 
     console.log("addressss", address);
     if (userLoc.rows <= 0) {
       const insertQuery =
-        "INSERT INTO users_info (city, street, street_number, lat, long) VALUES ($1, $2, $3, $4, $5)";
+        "INSERT INTO users_location (city, street, street_number, lat, long,user_id) VALUES ($1, $2, $3, $4, $5,$6)";
       const values = [
         city,
-        street,
+        street.substring(7),
         streetNumber,
         parseFloat(lat),
         parseFloat(long),
+        ctx.message.from.id
       ];
 
       // Execute the insert query
@@ -54,7 +55,7 @@ const saveLocation = async (ctx) => {
         "UPDATE users_info SET city = $1, street = $2, street_number = $3, lat = $4, long = $5 WHERE user_id = $6";
       const values = [
         city,
-        street,
+        street.substring(7),
         streetNumber,
         parseFloat(lat),
         parseFloat(long),
@@ -97,19 +98,20 @@ const saveLocationInTheEnd = async (ctx, lattitude, longitude) => {
     console.log(city, street.substring(7), streetNumber);
 
     const userLoc = await pool.query(
-      `select * from users_info where user_id =${ctx.message.from.id}`
+      `select * from users_location where user_id =${ctx.message.from.id}`
     );
 const onlyStreet = street.substring(7)
     console.log("addressss", address);
     if (userLoc.rows <= 0) {
       const insertQuery =
-        "INSERT INTO users_info (city, street, street_number, lat, long) VALUES ($1, $2, $3, $4, $5)";
+        "INSERT INTO users_location (city, street, street_number, lat, long,user_id) VALUES ($1, $2, $3, $4, $5,$6)";
       const values = [
         city,
         onlyStreet,,
         streetNumber,
         parseFloat(lat),
         parseFloat(long),
+        ctx.message.from.id
       ];
 
       // Execute the insert query
@@ -122,7 +124,7 @@ const onlyStreet = street.substring(7)
       });
     } else {
       const updateQuery =
-        "UPDATE users_info SET city = $1, street = $2, street_number = $3, lat = $4, long = $5 WHERE user_id = $6";
+        "UPDATE users_location SET city = $1, street = $2, street_number = $3, lat = $4, long = $5 WHERE user_id = $6";
       const values = [
         city,
         onlyStreet,,

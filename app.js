@@ -8,6 +8,7 @@ const http = require("http");
 const app = express();
 const liqpayRouter = require("./routes/liqpay/liqpay");
 const port = 5005;
+const cron = require("node-cron");
 const path = require("path");
 var LiqPay = require("./my_modules/liqpay/liqpay");
 const { v4: uuidv4 } = require("uuid");
@@ -26,6 +27,9 @@ const changeInfoScene = require("./scenes/changeInfoScene");
 const reverseGeocode = require("./helpers/reverseGeocode");
 const { botLikesValue } = require("./bot_functions/bot_likes");
 const getDistanceString = require("./helpers/getKilomiters");
+const updateLikes = require("./helpers/updateLikesCountEveryDay");
+const updateLikesForEveryUser = require("./helpers/updateLikesCountEveryDay");
+const buildTree = require("./helpers/referalsTree/referals");
 const public_key = "sandbox_i31110430124";
 const private_key = "sandbox_HJjraXMdCLnz3ApcEJOYCjmSgRjhsjtuvFSVmVci";
 var liqpay = new LiqPay(public_key, private_key);
@@ -89,8 +93,9 @@ const getInvoice = async (amount, username, customer) => {
 let users = {};
 
 bot.start(async (ctx) => {
+  const user = ctx.message.from;
   try {
-    await createUser(ctx.message.from);
+    await createUser(user);
 
     const userInfo = await pool.query(
       `select * from users_info where user_id = ${ctx.message.from.id}`
@@ -110,7 +115,7 @@ bot.start(async (ctx) => {
       await ctx.replyWithHTML(`Вітаю !`, {
         reply_markup: {
           keyboard: [
-            [{ text: "🔑 Мій аккаунт" }, { text: "👀 Дивитись анкети" }],
+            [{ text: "👤 Мій профіль" }, { text: "👀 Дивитись анкети" }],
             [
               { text: "💰 Реферальне посилання" },
               { text: "🔄 Заповнити анкету знову" },
@@ -128,7 +133,7 @@ bot.start(async (ctx) => {
     if (referrerId) {
       users[userId] = { referrer: referrerId };
       const existReferalUsers = await pool.query(
-        `select * from referals where user_id = ${userId} and referer_id =${referrerId}`
+        `select * from referrals where referrer_id = ${userId} and referee_id =${referrerId}`
       );
 
       if (existReferalUsers.rows > 0) {
@@ -136,7 +141,8 @@ bot.start(async (ctx) => {
         return;
       }
       if (existReferalUsers.rows <= 0) {
-        const res = await pool.query(`insert into referals (user_id,referer_id) 
+        const res =
+          await pool.query(`insert into referrals (referrer_id,referee_id) 
     values(${userId},${referrerId})
    `);
         await ctx.reply(
@@ -206,50 +212,57 @@ let currentProfileIndex = 0;
 let like = { user: null };
 
 bot.hears("👀 Дивитись анкети", async (ctx) => {
+  const likesPerDay = await pool.query(
+    `select likes_per_day as likes from users where tg_id = ${ctx.message.from.id}`
+  );
   const myParams = await pool.query(
     `select * from users_info where user_id = ${ctx.message.from.id}`
   );
-  const paramsSex = myParams.rows[0].looking;
   let profiles1 = [];
-  if (paramsSex === "M") {
-    profiles1 = await pool.query(`
-SELECT a.*, b.photo_url,b.type
-FROM users_info AS a
-LEFT JOIN users_photos AS b
-ON a.user_id = b.user_id 
-where a.user_id != ${ctx.message.from.id} and a.sex = 'M'
-`);
-  } else if (paramsSex === "W") {
-    profiles1 = await pool.query(`
-SELECT a.*, b.photo_url,b.type
-FROM users_info AS a
-LEFT JOIN users_photos AS b
-ON a.user_id = b.user_id 
-where a.user_id != ${ctx.message.from.id} and a.sex = 'W'
-`);
-  } else {
-    profiles1 = await pool.query(`
-  SELECT a.*, b.photo_url,b.type
-  FROM users_info AS a
-  LEFT JOIN users_photos AS b
-  ON a.user_id = b.user_id 
-  where a.user_id != ${ctx.message.from.id}`);
-  }
-
-  const usersProfile = profiles1.rows;
-  if (usersProfile.length > 0) {
-    profiles.push(...usersProfile);
-    if (currentProfileIndex < profiles.length) {
-      sendProfile(ctx);
+  const paramsSex = myParams?.rows[0].looking;
+  const myLikes = likesPerDay?.rows[0].likes;
+  if (myLikes > 0) {
+    if (paramsSex === "M") {
+      profiles1 = await pool.query(`
+    SELECT a.*, b.photo_url, b.type, c.*
+    FROM users_info AS a
+    LEFT JOIN users_photos AS b ON a.user_id = b.user_id 
+    LEFT JOIN users_location AS c ON a.user_id = c.user_id
+    WHERE a.user_id != ${ctx.message.from.id} AND a.sex = 'M'
+  `);
+    } else if (paramsSex === "W") {
+      profiles1 = await pool.query(`
+    SELECT a.*, b.photo_url, b.type, c.*
+    FROM users_info AS a
+    LEFT JOIN users_photos AS b ON a.user_id = b.user_id 
+    LEFT JOIN users_location AS c ON a.user_id = c.user_id
+    WHERE a.user_id != ${ctx.message.from.id} AND a.sex = 'W'
+  `);
     } else {
-      ctx.reply("Більше немає анкет для перегляду.");
+      profiles1 = await pool.query(`
+    SELECT a.*, b.photo_url, b.type, c.*
+    FROM users_info AS a
+    LEFT JOIN users_photos AS b ON a.user_id = b.user_id 
+    LEFT JOIN users_location AS c ON a.user_id = c.user_id
+    WHERE a.user_id != ${ctx.message.from.id}
+  `);
+    }
+    const usersProfile = profiles1.rows;
+    if (usersProfile.length > 0) {
+      profiles.push(...usersProfile);
+      if (currentProfileIndex < profiles.length) {
+        sendProfile(ctx);
+      }
+    } else {
+      await ctx.reply("Анкет не знайдено.Змініть фільтри пошуку");
     }
   } else {
+    ctx.reply("На сьогодні усі лайки завершились.");
   }
 });
-async function sendProfile(ctx, like) {
+async function sendProfile(ctx) {
   const myLocation = await pool.query(
-    `select lat,long from users_info where user_id =${ctx.message.from.id}`
+    `select lat,long from users_location where user_id =${ctx.message.from.id}`
   );
   const myLoc = myLocation.rows[0];
   const currentProfile = profiles[currentProfileIndex];
@@ -263,36 +276,32 @@ async function sendProfile(ctx, like) {
     latitude: currentProfile.lat,
     longitude: currentProfile.long,
   };
-
-  // // Обчислити відстань між точками в метрах
-  // const distancion = geolib.getDistance(myPoint, userPoint);
-  // ctx.reply(
-  //   `Відстань між точкою A і точкою B: ${geolib
-  //     .convertDistance(distancion, "km")
-  //     .toFixed(1)}км`
-  // );
-  const distanceInMeters = geolib.getDistance(myPoint, userPoint);
-
-  // Convert the distance from meters to kilometers
-  const distanceInKilometers = distanceInMeters / 1000;
-let message = '';
- if (myPoint & userPoint) {
-   message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
-    currentProfile?.name ? currentProfile?.name : null
-  }\n\n🕤 ${
-    currentProfile.age ? currentProfile.age : null
-  }р. / 📍- ${getDistanceString(myPoint, userPoint) ? getDistanceString(myPoint, userPoint) : " "} \n\n📔 ${
-    currentProfile?.text ? currentProfile?.text : null
-  }`;
- }else {
-  message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
-    currentProfile?.name ? currentProfile?.name : null
-  }\n\n🕤 ${
-    currentProfile.age ? currentProfile.age : null
-  }р. \n\n📔 ${
-    currentProfile?.text ? currentProfile?.text : null
-  }`;
- }
+  let message = "";
+  if (
+    myPoint !== null ||
+    userPoint !== null ||
+    myPoint !== undefined ||
+    userPoint !== undefined
+  ) {
+    message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
+      currentProfile?.name ? currentProfile?.name : null
+    }\n\n🕤 ${currentProfile.age ? currentProfile.age : null}р. 📍- ${
+      getDistanceString(myPoint, userPoint)
+        ? getDistanceString(myPoint, userPoint)
+        : " "
+    } \n\n📔 ${currentProfile?.text ? currentProfile?.text : null}`;
+  } else if (
+    myPoint === null ||
+    userPoint === null ||
+    myPoint === undefined ||
+    userPoint === undefined
+  ) {
+    message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
+      currentProfile?.name ? currentProfile?.name : null
+    }\n\n🕤 ${currentProfile.age ? currentProfile.age : null}р. \n\n📔 ${
+      currentProfile?.text ? currentProfile?.text : null
+    }`;
+  }
 
   if (currentProfile.type === "photo") {
     await ctx.replyWithPhoto(
@@ -321,17 +330,22 @@ let message = '';
       }
     );
   }
+
   // Інкрементуємо currentProfileIndex для відправки наступної анкети
   currentProfileIndex++;
 }
 
 bot.hears("❤️", async (ctx) => {
+  const likesCount = await pool.query(
+    `select likes_per_day from users where tg_id = ${ctx.message.from.id}`
+  );
+  console.log(likesCount.rows[0]);
   const prevUser = profiles[currentProfileIndex - 1];
   // Оновіть інформацію в базі даних для поточної анкети як лайк
   const currentProfile = profiles[currentProfileIndex - 1];
 
   if (!prevUser?.user_id || prevUser.user_id === null) {
-    return null;
+    return await ctx.reply("Немає такого варіанту відповіді.");
   } else {
     const res = await pool.query(`
     INSERT INTO users_likes (user_id1, user_id2, like_1, like_2, created_at)
@@ -339,18 +353,42 @@ bot.hears("❤️", async (ctx) => {
      `);
     ctx.telegram.sendMessage(
       prevUser.user_id,
-      `Схоже вами хтось зацікавився 😎\n\n\nПодивіться хто вас лайкнув в меню:\n\n🔑 Мій аккаунт -> 💌 Мої вподобайки`
+      `Схоже вами хтось зацікавився 😎\n\n\nПодивіться хто вас лайкнув в меню:\n\n👤 Мій профіль -> 💌 Мої вподобайки`
     );
   }
 
+  const updateLikesQuery = `
+UPDATE users
+SET likes_per_day = likes_per_day - 1
+WHERE tg_id = ${ctx.message.from.id}`;
+  const result = await pool.query(updateLikesQuery);
+
   //   Відправка наступної анкети
-  if (currentProfileIndex < profiles.length) {
+  if (
+    currentProfileIndex < profiles.length &&
+    likesCount.rows[0].likes_per_day > 0
+  ) {
     sendProfile(ctx, (like = 1));
+  } else if (likesCount.rows[0].likes_per_day === 0) {
+    ctx.reply("Лайки на сьогодні закінчились", {
+      reply_markup: {
+        keyboard: [
+          [{ text: "👤 Мій профіль" }, { text: "👀 Дивитись анкети" }],
+          [
+            { text: "💰 Реферальне посилання" },
+            { text: "🔄 Заповнити анкету знову" },
+          ],
+          [{ text: "🐣 Зв'язок з розробником" }],
+          [{ text: "🌐 Відкрити сайт" }],
+        ],
+        resize_keyboard: true,
+      },
+    });
   } else {
     ctx.reply("Більше немає анкет для перегляду", {
       reply_markup: {
         keyboard: [
-          [{ text: "🔑 Мій аккаунт" }, { text: "👀 Дивитись анкети" }],
+          [{ text: "👤 Мій профіль" }, { text: "👀 Дивитись анкети" }],
           [
             { text: "💰 Реферальне посилання" },
             { text: "🔄 Заповнити анкету знову" },
@@ -364,6 +402,7 @@ bot.hears("❤️", async (ctx) => {
   }
 });
 
+// bot.hears('Моя анкета')
 bot.hears("👎", async (ctx) => {
   // Оновіть інформацію в базі даних для поточної анкети як дизлайк
   const currentProfile = profiles[currentProfileIndex - 1];
@@ -376,7 +415,7 @@ bot.hears("👎", async (ctx) => {
     ctx.reply("Більше немає анкет для перегляду", {
       reply_markup: {
         keyboard: [
-          [{ text: "🔑 Мій аккаунт" }, { text: "👀 Дивитись анкети" }],
+          [{ text: "👤 Мій профіль" }, { text: "👀 Дивитись анкети" }],
           [
             { text: "💰 Реферальне посилання" },
             { text: "🔄 Заповнити анкету знову" },
@@ -416,7 +455,7 @@ bot.hears("💰 Реферальне посилання", async (ctx) => {
   );
 });
 
-bot.command("🔑 Мій аккаунт", async (ctx) => {
+bot.command("myprofile", async (ctx) => {
   const myAcc = await pool.query(`
   SELECT a.*, b.photo_url,b.type
   FROM users_info AS a
@@ -425,8 +464,15 @@ bot.command("🔑 Мій аккаунт", async (ctx) => {
   `);
   const me = myAcc.rows[0];
   console.log(me);
+  await ctx.reply(
+    `Ти ${me?.sex === "M" ? "приєднався" : "приєдналась"} до нас\n📅${moment(
+      me?.created_at
+    ).format("LLL")} год.`
+  );
   if (me === undefined || me === null || me.type === null) {
-    await ctx.reply("Упссс.....щось пішло не так....");
+    await ctx.reply(
+      "Упссс.....щось пішло не так....Спробуйте натиснути команду /start"
+    );
   } else {
     const message = `👤Ім'я: ${me?.name ? me?.name : "..."}\n\n🕐Вік: ${
       me?.age ? me?.age : 50
@@ -448,11 +494,6 @@ bot.command("🔑 Мій аккаунт", async (ctx) => {
             resize_keyboard: true,
           },
         }
-      );
-      await ctx.reply(
-        `Ти ${me.sex === "M" ? "приєднався" : "приєдналась"} до нас\n📅${moment(
-          me.created_at
-        ).format("LLL")} год.`
       );
     } else {
       await ctx.replyWithVideo(
@@ -477,10 +518,10 @@ bot.command("🔑 Мій аккаунт", async (ctx) => {
 });
 
 bot.hears("⬅️ Назад", async (ctx) => {
-  await ctx.reply("🔑 Мій аккаунт", {
+  await ctx.reply("👤 Мій профіль", {
     reply_markup: {
       keyboard: [
-        [{ text: "🔑 Мій аккаунт" }, { text: "👀 Дивитись анкети" }],
+        [{ text: "👤 Мій профіль" }, { text: "👀 Дивитись анкети" }],
         [
           { text: "💰 Реферальне посилання" },
           { text: "🔄 Заповнити анкету знову" },
@@ -492,25 +533,25 @@ bot.hears("⬅️ Назад", async (ctx) => {
     },
   });
 });
-bot.hears("👨‍👩‍👧‍👦 Мої реферали", async (ctx) => {
-  const message = `👥 Мої Реферали - У Розробці
+// bot.hears("👨‍👩‍👧‍👦 Мої реферали", async (ctx) => {
+//   const message = `👥 Мої Реферали - У Розробці
 
-  Ми вже працюємо над впровадженням функціоналу "Мої Реферали", який дозволить вам бачити та керувати своїм реферальним командуванням. З цим інноваційним інструментом ви зможете:
-  
-  📊 Відстежувати Динаміку: Переглядайте статистику та ефективність вашої реферальної команди.
-  
-  🌐 Розширюйте Мережу: Запрошуйте нових користувачів та отримуйте бонуси за кожного нового учасника.
-  
-  🎉 Спеціальні Переваги: Отримуйте ексклюзивні привілеї та бонуси за досягнення певних мильників.
-  
-  Залишайтеся з нами, і найближчим часом ви зможете насолоджуватися усіма перевагами "Моїх Рефералів"! 👥✨`;
-  await ctx.reply(message, {
-    reply_markup: {
-      keyboard: [[{ text: "⬅️ Назад" }]],
-      resize_keyboard: true,
-    },
-  });
-});
+//   Ми вже працюємо над впровадженням функціоналу "Мої Реферали", який дозволить вам бачити та керувати своїм реферальним командуванням. З цим інноваційним інструментом ви зможете:
+
+//   📊 Відстежувати Динаміку: Переглядайте статистику та ефективність вашої реферальної команди.
+
+//   🌐 Розширюйте Мережу: Запрошуйте нових користувачів та отримуйте бонуси за кожного нового учасника.
+
+//   🎉 Спеціальні Переваги: Отримуйте ексклюзивні привілеї та бонуси за досягнення певних мильників.
+
+//   Залишайтеся з нами, і найближчим часом ви зможете насолоджуватися усіма перевагами "Моїх Рефералів"! 👥✨`;
+//   await ctx.reply(message, {
+//     reply_markup: {
+//       keyboard: [[{ text: "⬅️ Назад" }]],
+//       resize_keyboard: true,
+//     },
+//   });
+// });
 bot.hears("⚙ Налаштування", async (ctx) => {
   await ctx.reply("⚙ Налаштування", {
     reply_markup: {
@@ -550,7 +591,7 @@ bot.hears("🌟 Premium", async (ctx) => {
   });
 });
 
-bot.hears("🔑 Мій аккаунт", async (ctx) => {
+bot.hears("👤 Мій профіль", async (ctx) => {
   const myAcc = await pool.query(`
   SELECT a.*, b.photo_url,b.type
   FROM users_info AS a
@@ -559,11 +600,11 @@ bot.hears("🔑 Мій аккаунт", async (ctx) => {
   `);
   const me = myAcc.rows[0];
   console.log(me);
-  const message = `👤Ім'я: ${me.name}\n\n🕐Вік: ${me.age}\n\n💁Інфа: ${me.text}`;
-  if (me.type === "photo") {
+  const message = `👤Ім'я: ${me?.name}\n\n🕐Вік: ${me?.age}\n\n💁Інфа: ${me?.text}`;
+  if (me?.type === "photo") {
     await ctx.replyWithPhoto(
       {
-        url: me.photo_url,
+        url: me?.photo_url,
       },
       {
         caption: message,
@@ -581,7 +622,7 @@ bot.hears("🔑 Мій аккаунт", async (ctx) => {
   } else {
     await ctx.replyWithVideo(
       {
-        url: me.photo_url,
+        url: me?.photo_url,
       },
       {
         caption: message,
@@ -606,7 +647,7 @@ bot.hears(`✔️`, async (ctx) => {
   ctx.reply("Ви в головному меню", {
     reply_markup: {
       keyboard: [
-        [{ text: "🔑 Мій аккаунт" }, { text: "👀 Дивитись анкети" }],
+        [{ text: "👤 Мій профіль" }, { text: "👀 Дивитись анкети" }],
         [
           { text: "💰 Реферальне посилання" },
           { text: "🔄 Заповнити анкету знову" },
@@ -668,7 +709,7 @@ bot.action("first_tarif", async (ctx) => {
     reply_markup: {
       keyboard: [
         [{ text: "Оплатити Тариф Light" }],
-        [{ text: "🔑 Мій аккаунт" }],
+        [{ text: "👤 Мій профіль" }],
       ],
       resize_keyboard: true,
     },
@@ -679,7 +720,7 @@ bot.action("second_tarif", async (ctx) => {
     reply_markup: {
       keyboard: [
         [{ text: "Оплатити Тариф Medium" }],
-        [{ text: "🔑 Мій аккаунт" }],
+        [{ text: "👤 Мій профіль" }],
       ],
       resize_keyboard: true,
     },
@@ -690,7 +731,7 @@ bot.action("third_taif", async (ctx) => {
     reply_markup: {
       keyboard: [
         [{ text: "Оплатити Тариф Йобтвою мать" }],
-        [{ text: "🔑 Мій аккаунт" }],
+        [{ text: "👤 Мій профіль" }],
       ],
       resize_keyboard: true,
     },
@@ -701,7 +742,7 @@ bot.action("omg_tarif", async (ctx) => {
     reply_markup: {
       keyboard: [
         [{ text: `Оплатити Тариф "Ну його на...уй"` }],
-        [{ text: "🔑 Мій аккаунт" }],
+        [{ text: "👤 Мій профіль" }],
       ],
       resize_keyboard: true,
     },
@@ -838,6 +879,241 @@ bot.on("location", async (ctx) => {
 bot.hears("Залишок ❤️", async (ctx) => {
   botLikesValue(ctx);
 });
+let usersLikesIndex = 0;
+let usersLikesProfiles = [];
+bot.hears("💌 Мої вподобайки", async (ctx) => {
+  const result = await pool.query(`
+  select a.*,
+         b.name,b.text,b.age,b.sex,b.looking,
+         c.photo_url,c.type,
+         d.city,d.street,d.street_number,d.lat,d.long,d.user_id,
+         e.*
+  from users_likes as a 
+  left join users_info b on a.user_id1 = b.user_id
+  left join users_photos c on a.user_id1 = c.user_id
+  left join users_location d on a.user_id1 = d.user_id
+  left join users e on a.user_id1 = e.tg_id
+  where user_id2 = ${ctx.message.from.id} and is_show = 0`);
+  const myLikes = result.rows;
+
+  if (myLikes.length > 0) {
+    usersLikesProfiles.push(...myLikes);
+    if (usersLikesIndex < usersLikesProfiles.length) {
+      sendLikeProfile(ctx);
+    }
+  } else {
+    await ctx.reply(
+      "Нажаль у вас ще немає симпатій 😪 \n\nЛайкайте анкети та чекайте відповіді 🤪"
+    );
+  }
+});
+
+async function sendLikeProfile(ctx) {
+  const myLocation = await pool.query(
+    `select lat,long from users_location where user_id =${ctx.message.from.id}`
+  );
+  const myLoc = myLocation.rows[0];
+  const currentProfile = usersLikesProfiles[usersLikesIndex];
+  const keyboard = Markup.inlineKeyboard([
+    Markup.button.callback("Option 1", "option1"),
+    Markup.button.callback("Option 2", "option2"),
+  ]);
+
+  const myPoint = { latitude: myLoc.lat, longitude: myLoc.long };
+  const userPoint = {
+    latitude: currentProfile.lat,
+    longitude: currentProfile.long,
+  };
+  let message = "";
+  if (
+    myPoint !== null ||
+    userPoint !== null ||
+    myPoint !== undefined ||
+    userPoint !== undefined
+  ) {
+    message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
+      currentProfile?.name ? currentProfile?.name : null
+    }\n\n🕤 ${currentProfile.age ? currentProfile.age : null}р. / 📍- ${
+      getDistanceString(myPoint, userPoint)
+        ? getDistanceString(myPoint, userPoint)
+        : " "
+    } \n\n📔 ${currentProfile?.text ? currentProfile?.text : null}`;
+  } else if (
+    myPoint === null ||
+    userPoint === null ||
+    myPoint === undefined ||
+    userPoint === undefined
+  ) {
+    message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
+      currentProfile?.name ? currentProfile?.name : null
+    }\n\n🕤 ${currentProfile.age ? currentProfile.age : null}р. \n\n📔 ${
+      currentProfile?.text ? currentProfile?.text : null
+    }`;
+  }
+
+  if (currentProfile.type === "photo") {
+    await ctx.replyWithPhoto(
+      {
+        url: currentProfile.photo_url,
+      },
+      {
+        caption: message,
+        reply_markup: {
+          keyboard: [
+            [{ text: "🫠 Взаємно" }, { text: "🙅 Точно ні" }, { text: "✔️" }],
+          ],
+          resize_keyboard: true,
+        },
+      }
+    );
+  } else {
+    await ctx.replyWithVideo(
+      {
+        url: currentProfile.photo_url,
+      },
+      {
+        caption: message,
+        reply_markup: {
+          keyboard: [
+            [{ text: "🫠 Взаємно" }, { text: "🙅 Точно ні" }, { text: "✔️" }],
+          ],
+          resize_keyboard: true,
+        },
+      }
+    );
+  }
+
+  // Інкрементуємо currentProfileIndex для відправки наступної анкети
+  usersLikesIndex++;
+}
+
+bot.hears("🫠 Взаємно", async (ctx) => {
+  // const setIsShow = await pool.query``
+  const currentProfile = usersLikesProfiles[usersLikesIndex - 1];
+  // const currentProfile = usersLikesProfiles;
+  console.log(currentProfile);
+
+  const updateLike = await pool.query(`
+update users_likes 
+set is_show = 1,like_2 = 1
+where user_id2 = ${ctx.message.from.id}
+`);
+
+  await ctx.reply(`
+Взаємна симпатія:\n
+Напишіть @${currentProfile.username}
+`);
+
+  const result = await pool.query(`
+select a.*
+from users_likes as a 
+where user_id2 = ${ctx.message.from.id} and is_show = 0`);
+
+  if (ctx.message.from.username) {
+    await bot.telegram.sendMessage(
+      currentProfile.user_id1,
+      `
+У вас взємний лайк!\nНапишіть @${ctx.message.from.username}
+`
+    );
+  } else {
+    await bot.telegram.sendMessage(
+      currentProfile.user_id1,
+      `
+  У вас взємний лайк!\nПроте користувач не відкрив своїх контактних даних.\nМи вже повідомили його, щоб відкрив свій профіль.\nОчікуйте на повідомлення.
+  `
+    );
+  }
+  if (result.rows.length <= 0) {
+    await ctx.reply("Більше симпатій немає.", {
+      reply_markup: {
+        keyboard: [
+          [{ text: "👤 Мій профіль" }, { text: "👀 Дивитись анкети" }],
+          [
+            { text: "💰 Реферальне посилання" },
+            { text: "🔄 Заповнити анкету знову" },
+          ],
+          [{ text: "🐣 Зв'язок з розробником" }],
+          [{ text: "🌐 Відкрити сайт" }],
+        ],
+        resize_keyboard: true,
+      },
+    });
+  }
+});
+
+bot.hears("🙅 Точно ні", async (ctx) => {
+  const updateLike = await pool.query(`
+  update users_likes 
+  set is_show = 1,like_2 = 0
+  where user_id2 = ${ctx.message.from.id}
+  `);
+  const result = await pool.query(`
+select a.*
+from users_likes as a 
+where user_id2 = ${ctx.message.from.id} and is_show = 0`);
+
+  if (result.rows.length <= 0) {
+    await ctx.reply("Більше симпатій немає.", {
+      reply_markup: {
+        keyboard: [
+          [{ text: "👤 Мій профіль" }, { text: "👀 Дивитись анкети" }],
+          [
+            { text: "💰 Реферальне посилання" },
+            { text: "🔄 Заповнити анкету знову" },
+          ],
+          [{ text: "🐣 Зв'язок з розробником" }],
+          [{ text: "🌐 Відкрити сайт" }],
+        ],
+        resize_keyboard: true,
+      },
+    });
+  }
+});
+
+bot.hears("👨‍👩‍👧‍👦 Мої реферали", async (ctx) => {
+  const result = await pool.query(`
+SELECT
+    u.tg_id,
+    u.username,
+    ARRAY(
+        SELECT c.username
+        FROM referrals r
+        JOIN users c ON r.referrer_id = c.tg_id
+        WHERE r.referee_id = ${ctx.message.from.id}
+    ) AS children
+FROM
+    users u
+WHERE ARRAY_LENGTH(
+        ARRAY(
+            SELECT  r.referrer_id
+            FROM referrals r
+            WHERE r.referee_id = u.tg_id
+        ), 1) IS NOT NULL
+`);
+  console.log(result.rows);
+  let message = "";
+  const mappedReferals = result.rows[0].children.map((item, idx) => {
+    message += `${idx + 1} - @${item}\n`;
+  });
+
+  if (result.rows[0].children.length > 0) {
+    await ctx.reply(`Список ваших рефералів:\n${message}`);
+  } else if (result.rows[0].children.length > 199) {
+    await ctx.reply(
+      `Список ваших рефералів:\nУ вас понад 200+ рефералів.Ми фізично не можемо вивести даний список.Ви зможете переглянути усіх рефералів на сайті.`
+    );
+  } else {
+    await ctx.replyWithHTML(
+      `У вас поки що немає рефералів.\nНадішліть ваше персональне посилання для того щоб запросити друзів та отримайте бонуси 🎁\n\n<code>https://t.me/EnjoyHubBot?start=${ctx.message.from.id}</code>`,
+      { parse_mode: "HTML" }
+    );
+  }
+});
+
+// ЗАПЛАНОВАНІ ПОДІЇ
+updateLikesForEveryUser(bot);
+// ЗАПЛАНОВАНІ ПОДІЇ
 // SCENES ENTER
 bot.launch();
 process.once("SIGINT", () => bot.stop("SIGINT"));
