@@ -605,7 +605,7 @@ bot.hears("👤 Мій профіль", async (ctx) => {
 
   const me = myAcc.rows[0];
 
-  if (myAcc.rows < 0) {
+  if (myAcc.rows) {
     const message = `👤Ім'я: ${me?.name}\n\n🕐Вік: ${me?.age}\n\n💁Інфа: ${me?.text}`;
     if (me?.type === "photo") {
       await ctx.replyWithPhoto(
@@ -646,7 +646,7 @@ bot.hears("👤 Мій профіль", async (ctx) => {
       );
     }
   }else {
-    return await ctx.reply('Натисніть на /start')
+     await ctx.reply('Натисніть на /start')
   }
  
 });
