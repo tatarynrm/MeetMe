@@ -767,7 +767,7 @@ bot.action("omg_tarif", async (ctx) => {
 //     for (let i = 0; i < result.rows.length; i++) {
 //     const el = result.rows[i];
 //     console.log(el.tg_id);
-//     bot.telegram.sendMessage(el.tg_id,'Додав нову фічуууууу.Сайт який відкривається прям в БОТІ....Гиии )')
+//     bot.telegram.sendMessage(el.tg_id,'Функції бота відновлено')
 //     // ctx.sendMessage('Додав нову фічуууууу.Сайт який відкривається прям в БОТІ....Гиии )',{chat_id:el.tg_id})
 //   }
 //   } catch (error) {
