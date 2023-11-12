@@ -218,9 +218,10 @@ bot.hears("👀 Дивитись анкети", async (ctx) => {
   const myParams = await pool.query(
     `select * from users_info where user_id = ${ctx.message.from.id}`
   );
+if (likesPerDay || myParams.rows[0]?.looking ) {
   let profiles1 = [];
-  const paramsSex = myParams?.rows[0].looking;
-  const myLikes = likesPerDay?.rows[0].likes;
+  const paramsSex = myParams?.rows[0]?.looking;
+  const myLikes = likesPerDay?.rows[0]?.likes;
   if (myLikes > 0) {
     if (paramsSex === "M") {
       profiles1 = await pool.query(`
@@ -259,6 +260,9 @@ bot.hears("👀 Дивитись анкети", async (ctx) => {
   } else {
     ctx.reply("На сьогодні усі лайки завершились.");
   }
+}else {
+  await ctx.reply('Натисність /start')
+}
 });
 async function sendProfile(ctx) {
   const myLocation = await pool.query(
@@ -598,47 +602,53 @@ bot.hears("👤 Мій профіль", async (ctx) => {
   LEFT JOIN users_photos AS b ON a.user_id = b.user_id
   WHERE a.user_id = ${ctx.message.from.id};
   `);
+
   const me = myAcc.rows[0];
-  console.log(me);
-  const message = `👤Ім'я: ${me?.name}\n\n🕐Вік: ${me?.age}\n\n💁Інфа: ${me?.text}`;
-  if (me?.type === "photo") {
-    await ctx.replyWithPhoto(
-      {
-        url: me?.photo_url,
-      },
-      {
-        caption: message,
-        reply_markup: {
-          keyboard: [
-            [{ text: "⚙ Налаштування" }],
-            [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-            [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
-            [{ text: "⬅️ Назад" }],
-          ],
-          resize_keyboard: true,
+
+  if (myAcc.rows < 0) {
+    const message = `👤Ім'я: ${me?.name}\n\n🕐Вік: ${me?.age}\n\n💁Інфа: ${me?.text}`;
+    if (me?.type === "photo") {
+      await ctx.replyWithPhoto(
+        {
+          url: me?.photo_url,
         },
-      }
-    );
-  } else {
-    await ctx.replyWithVideo(
-      {
-        url: me?.photo_url,
-      },
-      {
-        caption: message,
-        reply_markup: {
-          keyboard: [
-            [{ text: "⚙ Налаштування" }],
-            [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-            [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
-            [{ text: "Веб" }],
-            [{ text: "⬅️ Назад" }],
-          ],
-          resize_keyboard: true,
+        {
+          caption: message,
+          reply_markup: {
+            keyboard: [
+              [{ text: "⚙ Налаштування" }],
+              [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
+              [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
+              [{ text: "⬅️ Назад" }],
+            ],
+            resize_keyboard: true,
+          },
+        }
+      );
+    } else {
+      await ctx.replyWithVideo(
+        {
+          url: me?.photo_url,
         },
-      }
-    );
+        {
+          caption: message,
+          reply_markup: {
+            keyboard: [
+              [{ text: "⚙ Налаштування" }],
+              [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
+              [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
+              [{ text: "Веб" }],
+              [{ text: "⬅️ Назад" }],
+            ],
+            resize_keyboard: true,
+          },
+        }
+      );
+    }
+  }else {
+    return await ctx.reply('Натисніть на /start')
   }
+ 
 });
 bot.hears(`🐣 Зв'язок з розробником`, async (ctx) => {
   ctx.reply("@web_developer_Ukraine");
