@@ -173,15 +173,7 @@ bot.start(async (ctx) => {
     }
   } catch (error) {
     console.log(error);
-    // await ctx.replyWithHTML(`Вітаю!`, {
-    //   reply_markup: {
-    //     keyboard: [
-    //       [{ text: "Створити анкету 📒" }],
-    //       [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
-    //     ],
-    //     resize_keyboard: true,
-    //   },
-    // });
+    // await ctx.reply('Щось пішло не по плану')
   }
 });
 
@@ -279,15 +271,7 @@ async function sendProfile(ctx) {
     `select lat,long from users_location where user_id =${ctx.message.from.id}`
   );
   if (myLocation === undefined || myLocation === null || myLocation.rows.length <= 0) {
-    await ctx.replyWithHTML(`Вітаю!`, {
-      reply_markup: {
-        keyboard: [
-          [{ text: "Створити анкету 📒" }],
-          [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
-        ],
-        resize_keyboard: true,
-      },
-    });
+    await ctx.reply('Щось пішло не так.\n\nНатисніть на /start')
   }else {
     const myLoc = myLocation.rows[0];
     const currentProfile = profiles[currentProfileIndex];
@@ -491,74 +475,72 @@ bot.command("myprofile", async (ctx) => {
   `);
   const me = myAcc.rows[0];
 
-if (me.photo_url & me.sex) {
+if (me) {
   await ctx.reply(
     `Ти ${me?.sex === "M" ? "приєднався" : "приєдналась"} до нас\n📅${moment(
       me?.created_at
     ).format("LLL")} год.`
   );
   if (me === undefined || me === null || me.type === null) {
-    await ctx.replyWithHTML(`Вітаю!`, {
-      reply_markup: {
-        keyboard: [
-          [{ text: "Створити анкету 📒" }],
-          [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
-        ],
-        resize_keyboard: true,
-      },
-    });
+    await ctx.reply(
+      "Упссс.....щось пішло не так....Спробуйте натиснути команду /start"
+    );
   } else {
     const message = `👤Ім'я: ${me?.name ? me?.name : "..."}\n\n🕐Вік: ${
       me?.age ? me?.age : 50
     }\n\n💁Інфа: ${me?.text ? me?.text : "Немає інфи"}`;
-    if (me?.type === "photo") {
-      await ctx.replyWithPhoto(
-        {
-          url: me.photo_url,
+if (me.photo_url) {
+  if (me?.type === "photo") {
+    await ctx.replyWithPhoto(
+      {
+        url: me.photo_url,
+      },
+      {
+        caption: message,
+        reply_markup: {
+          keyboard: [
+            [{ text: "⚙ Налаштування" }],
+            [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
+            [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
+            [{ text: "⬅️ Назад" }],
+          ],
+          resize_keyboard: true,
         },
-        {
-          caption: message,
-          reply_markup: {
-            keyboard: [
-              [{ text: "⚙ Налаштування" }],
-              [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-              [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
-              [{ text: "⬅️ Назад" }],
-            ],
-            resize_keyboard: true,
-          },
-        }
-      );
-    } else {
-      await ctx.replyWithVideo(
-        {
-          url: me?.photo_url,
+      }
+    );
+  } else {
+    await ctx.replyWithVideo(
+      {
+        url: me?.photo_url,
+      },
+      {
+        caption: message,
+        reply_markup: {
+          keyboard: [
+            [{ text: "⚙ Налаштування" }],
+            [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
+            [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
+            [{ text: "⬅️ Назад" }],
+          ],
+          resize_keyboard: true,
         },
-        {
-          caption: message,
-          reply_markup: {
-            keyboard: [
-              [{ text: "⚙ Налаштування" }],
-              [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-              [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
-              [{ text: "⬅️ Назад" }],
-            ],
-            resize_keyboard: true,
-          },
-        }
-      );
-    }
+      }
+    );
   }
 }else {
-  await ctx.replyWithHTML(`Вітаю!`, {
-    reply_markup: {
-      keyboard: [
-        [{ text: "Створити анкету 📒" }],
-        [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
-      ],
-      resize_keyboard: true,
-    },
-  });
+  return await ctx.reply('Заповніть анкету знову',{reply_markup:{
+    keyboard:[
+      [{text:"🔄 Заповнити анкету знову"}]
+    ]
+  }})
+}
+  }
+}else {
+  return await ctx.reply('Заповніть анкету знову',{reply_markup:{
+    keyboard:[
+      [{text:"🔄 Заповнити анкету знову"}]
+    ]
+  }})
 }
 });
 
@@ -646,56 +628,61 @@ bot.hears("👤 Мій профіль", async (ctx) => {
 
   const me = myAcc.rows[0];
 
-  if (me.sex & me.photo_url) {
+  if (me) {
     const message = `👤Ім'я: ${me?.name}\n\n🕐Вік: ${me?.age}\n\n💁Інфа: ${me?.text}`;
-    if (me?.type === "photo") {
-      await ctx.replyWithPhoto(
-        {
-          url: me?.photo_url,
-        },
-        {
-          caption: message,
-          reply_markup: {
-            keyboard: [
-              [{ text: "⚙ Налаштування" }],
-              [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-              [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
-              [{ text: "⬅️ Назад" }],
-            ],
-            resize_keyboard: true,
-          },
-        }
-      );
-    } else {
-      await ctx.replyWithVideo(
-        {
-          url: me?.photo_url,
-        },
-        {
-          caption: message,
-          reply_markup: {
-            keyboard: [
-              [{ text: "⚙ Налаштування" }],
-              [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-              [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
-              [{ text: "Веб" }],
-              [{ text: "⬅️ Назад" }],
-            ],
-            resize_keyboard: true,
-          },
-        }
-      );
-    }
-  }else {
-    await ctx.replyWithHTML(`Вітаю!`, {
-      reply_markup: {
-        keyboard: [
-          [{ text: "Створити анкету 📒" }],
-          [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
-        ],
-        resize_keyboard: true,
+if (me.photo_url) {
+  if (me?.type === "photo") {
+    await ctx.replyWithPhoto(
+      {
+        url: me?.photo_url,
       },
-    });
+      {
+        caption: message,
+        reply_markup: {
+          keyboard: [
+            [{ text: "⚙ Налаштування" }],
+            [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
+            [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
+            [{ text: "⬅️ Назад" }],
+          ],
+          resize_keyboard: true,
+        },
+      }
+    );
+  } else {
+    await ctx.replyWithVideo(
+      {
+        url: me?.photo_url,
+      },
+      {
+        caption: message,
+        reply_markup: {
+          keyboard: [
+            [{ text: "⚙ Налаштування" }],
+            [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
+            [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
+            [{ text: "Веб" }],
+            [{ text: "⬅️ Назад" }],
+          ],
+          resize_keyboard: true,
+        },
+      }
+    );
+  }
+}else {
+  return await ctx.reply('Заповніть анкету знову',{reply_markup:{
+    keyboard:[
+      [{text:"🔄 Заповнити анкету знову"}]
+    ]
+  }})
+}
+
+  }else {
+    return await ctx.reply('Заповніть анкету знову',{reply_markup:{
+      keyboard:[
+        [{text:"🔄 Заповнити анкету знову"}]
+      ]
+    }})
   }
  
 });
