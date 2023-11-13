@@ -946,7 +946,7 @@ bot.hears("💌 Мої вподобайки", async (ctx) => {
   left join users e on a.user_id1 = e.tg_id
   where user_id2 = ${ctx.message.from.id} and is_show = 0`);
   const myLikes = result.rows;
-
+console.log(myLikes);
   if (myLikes.length > 0) {
     usersLikesProfiles.push(...myLikes);
     if (usersLikesIndex < usersLikesProfiles.length) {
