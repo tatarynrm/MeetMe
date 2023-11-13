@@ -173,7 +173,15 @@ bot.start(async (ctx) => {
     }
   } catch (error) {
     console.log(error);
-    // await ctx.reply('Щось пішло не так.\n\nНатисніть на /start')
+    // await ctx.replyWithHTML(`Вітаю!`, {
+    //   reply_markup: {
+    //     keyboard: [
+    //       [{ text: "Створити анкету 📒" }],
+    //       [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
+    //     ],
+    //     resize_keyboard: true,
+    //   },
+    // });
   }
 });
 
@@ -271,7 +279,15 @@ async function sendProfile(ctx) {
     `select lat,long from users_location where user_id =${ctx.message.from.id}`
   );
   if (myLocation === undefined || myLocation === null || myLocation.rows.length <= 0) {
-    await ctx.reply('Щось пішло не так.\n\nНатисніть на /start')
+    await ctx.replyWithHTML(`Вітаю!`, {
+      reply_markup: {
+        keyboard: [
+          [{ text: "Створити анкету 📒" }],
+          [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
+        ],
+        resize_keyboard: true,
+      },
+    });
   }else {
     const myLoc = myLocation.rows[0];
     const currentProfile = profiles[currentProfileIndex];
@@ -482,7 +498,15 @@ if (me.photo_url & me.sex) {
     ).format("LLL")} год.`
   );
   if (me === undefined || me === null || me.type === null) {
-    await ctx.reply('Щось пішло не так.\n\nНатисніть на /start')
+    await ctx.replyWithHTML(`Вітаю!`, {
+      reply_markup: {
+        keyboard: [
+          [{ text: "Створити анкету 📒" }],
+          [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
+        ],
+        resize_keyboard: true,
+      },
+    });
   } else {
     const message = `👤Ім'я: ${me?.name ? me?.name : "..."}\n\n🕐Вік: ${
       me?.age ? me?.age : 50
@@ -526,7 +550,15 @@ if (me.photo_url & me.sex) {
     }
   }
 }else {
-  await ctx.reply('Щось пішло не так.\n\nНатисніть на /start')
+  await ctx.replyWithHTML(`Вітаю!`, {
+    reply_markup: {
+      keyboard: [
+        [{ text: "Створити анкету 📒" }],
+        [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
+      ],
+      resize_keyboard: true,
+    },
+  });
 }
 });
 
@@ -655,7 +687,15 @@ bot.hears("👤 Мій профіль", async (ctx) => {
       );
     }
   }else {
-     await ctx.reply('Щось пішло не так.\n\nНатисніть на /start')
+    await ctx.replyWithHTML(`Вітаю!`, {
+      reply_markup: {
+        keyboard: [
+          [{ text: "Створити анкету 📒" }],
+          [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
+        ],
+        resize_keyboard: true,
+      },
+    });
   }
  
 });
