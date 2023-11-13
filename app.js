@@ -173,7 +173,7 @@ bot.start(async (ctx) => {
     }
   } catch (error) {
     console.log(error);
-    // await ctx.reply('Щось пішло не по плану')
+    // await ctx.reply('Щось пішло не так.\n\nНатисніть на /start')
   }
 });
 
@@ -271,7 +271,7 @@ async function sendProfile(ctx) {
     `select lat,long from users_location where user_id =${ctx.message.from.id}`
   );
   if (myLocation === undefined || myLocation === null || myLocation.rows.length <= 0) {
-    ctx.reply('Щось пішло не так.Натисніть /start')
+    await ctx.reply('Щось пішло не так.\n\nНатисніть на /start')
   }else {
     const myLoc = myLocation.rows[0];
     const currentProfile = profiles[currentProfileIndex];
@@ -474,16 +474,15 @@ bot.command("myprofile", async (ctx) => {
   WHERE a.user_id = ${ctx.message.from.id};
   `);
   const me = myAcc.rows[0];
-  console.log(me);
+
+if (me.photo_url & me.sex) {
   await ctx.reply(
     `Ти ${me?.sex === "M" ? "приєднався" : "приєдналась"} до нас\n📅${moment(
       me?.created_at
     ).format("LLL")} год.`
   );
   if (me === undefined || me === null || me.type === null) {
-    await ctx.reply(
-      "Упссс.....щось пішло не так....Спробуйте натиснути команду /start"
-    );
+    await ctx.reply('Щось пішло не так.\n\nНатисніть на /start')
   } else {
     const message = `👤Ім'я: ${me?.name ? me?.name : "..."}\n\n🕐Вік: ${
       me?.age ? me?.age : 50
@@ -526,6 +525,9 @@ bot.command("myprofile", async (ctx) => {
       );
     }
   }
+}else {
+  await ctx.reply('Щось пішло не так.\n\nНатисніть на /start')
+}
 });
 
 bot.hears("⬅️ Назад", async (ctx) => {
@@ -612,7 +614,7 @@ bot.hears("👤 Мій профіль", async (ctx) => {
 
   const me = myAcc.rows[0];
 
-  if (me) {
+  if (me.sex & me.photo_url) {
     const message = `👤Ім'я: ${me?.name}\n\n🕐Вік: ${me?.age}\n\n💁Інфа: ${me?.text}`;
     if (me?.type === "photo") {
       await ctx.replyWithPhoto(
@@ -653,7 +655,7 @@ bot.hears("👤 Мій профіль", async (ctx) => {
       );
     }
   }else {
-     await ctx.reply('Натисніть на /start')
+     await ctx.reply('Щось пішло не так.\n\nНатисніть на /start')
   }
  
 });
