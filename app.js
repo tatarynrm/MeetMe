@@ -106,7 +106,7 @@ bot.start(async (ctx) => {
         reply_markup: {
           keyboard: [
             [{ text: "Створити анкету 📒" }],
-            [{ text: "🌐 Відкрити сайт" }],
+            [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
           ],
           resize_keyboard: true,
         },
@@ -121,7 +121,7 @@ bot.start(async (ctx) => {
               { text: "🔄 Заповнити анкету знову" },
             ],
             [{ text: "🐣 Зв'язок з розробником" }],
-            [{ text: "🌐 Відкрити сайт" }],
+            [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
           ],
           resize_keyboard: true,
         },
@@ -268,75 +268,80 @@ async function sendProfile(ctx) {
   const myLocation = await pool.query(
     `select lat,long from users_location where user_id =${ctx.message.from.id}`
   );
-  const myLoc = myLocation.rows[0];
-  const currentProfile = profiles[currentProfileIndex];
-  const keyboard = Markup.inlineKeyboard([
-    Markup.button.callback("Option 1", "option1"),
-    Markup.button.callback("Option 2", "option2"),
-  ]);
-
-  const myPoint = { latitude: myLoc.lat, longitude: myLoc.long };
-  const userPoint = {
-    latitude: currentProfile.lat,
-    longitude: currentProfile.long,
-  };
-  let message = "";
-  if (
-    myPoint !== null ||
-    userPoint !== null ||
-    myPoint !== undefined ||
-    userPoint !== undefined
-  ) {
-    message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
-      currentProfile?.name ? currentProfile?.name : null
-    }\n\n🕤 ${currentProfile.age ? currentProfile.age : null}р. 📍- ${
-      getDistanceString(myPoint, userPoint)
-        ? getDistanceString(myPoint, userPoint)
-        : " "
-    } \n\n📔 ${currentProfile?.text ? currentProfile?.text : null}`;
-  } else if (
-    myPoint === null ||
-    userPoint === null ||
-    myPoint === undefined ||
-    userPoint === undefined
-  ) {
-    message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
-      currentProfile?.name ? currentProfile?.name : null
-    }\n\n🕤 ${currentProfile.age ? currentProfile.age : null}р. \n\n📔 ${
-      currentProfile?.text ? currentProfile?.text : null
-    }`;
-  }
-
-  if (currentProfile.type === "photo") {
-    await ctx.replyWithPhoto(
-      {
-        url: currentProfile.photo_url,
-      },
-      {
-        caption: message,
-        reply_markup: {
-          keyboard: [[{ text: "❤️" }, { text: "👎" }, { text: "✔️" }]],
-          resize_keyboard: true,
+  if (myLocation === undefined || myLocation === null || myLocation.rows.length <= 0) {
+    ctx.reply('Щось пішло не так.Натисніть /start')
+  }else {
+    const myLoc = myLocation.rows[0];
+    const currentProfile = profiles[currentProfileIndex];
+    const keyboard = Markup.inlineKeyboard([
+      Markup.button.callback("Option 1", "option1"),
+      Markup.button.callback("Option 2", "option2"),
+    ]);
+  
+    const myPoint = { latitude: myLoc.lat, longitude: myLoc.long };
+    const userPoint = {
+      latitude: currentProfile.lat,
+      longitude: currentProfile.long,
+    };
+    let message = "";
+    if (
+      myPoint !== null ||
+      userPoint !== null ||
+      myPoint !== undefined ||
+      userPoint !== undefined
+    ) {
+      message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
+        currentProfile?.name ? currentProfile?.name : null
+      }\n\n🕤 ${currentProfile.age ? currentProfile.age : null}р. 📍- ${
+        getDistanceString(myPoint, userPoint)
+          ? getDistanceString(myPoint, userPoint)
+          : " "
+      } \n\n📔 ${currentProfile?.text ? currentProfile?.text : null}`;
+    } else if (
+      myPoint === null ||
+      userPoint === null ||
+      myPoint === undefined ||
+      userPoint === undefined
+    ) {
+      message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
+        currentProfile?.name ? currentProfile?.name : null
+      }\n\n🕤 ${currentProfile.age ? currentProfile.age : null}р. \n\n📔 ${
+        currentProfile?.text ? currentProfile?.text : null
+      }`;
+    }
+  
+    if (currentProfile.type === "photo") {
+      await ctx.replyWithPhoto(
+        {
+          url: currentProfile.photo_url,
         },
-      }
-    );
-  } else {
-    await ctx.replyWithVideo(
-      {
-        url: currentProfile.photo_url,
-      },
-      {
-        caption: message,
-        reply_markup: {
-          keyboard: [[{ text: "❤️" }, { text: "👎" }, { text: "✔️" }]],
-          resize_keyboard: true,
+        {
+          caption: message,
+          reply_markup: {
+            keyboard: [[{ text: "❤️" }, { text: "👎" }, { text: "✔️" }]],
+            resize_keyboard: true,
+          },
+        }
+      );
+    } else {
+      await ctx.replyWithVideo(
+        {
+          url: currentProfile.photo_url,
         },
-      }
-    );
+        {
+          caption: message,
+          reply_markup: {
+            keyboard: [[{ text: "❤️" }, { text: "👎" }, { text: "✔️" }]],
+            resize_keyboard: true,
+          },
+        }
+      );
+    }
+    // Інкрементуємо currentProfileIndex для відправки наступної анкети
+    currentProfileIndex++;
   }
+ 
 
-  // Інкрементуємо currentProfileIndex для відправки наступної анкети
-  currentProfileIndex++;
 }
 
 bot.hears("❤️", async (ctx) => {
@@ -383,7 +388,7 @@ WHERE tg_id = ${ctx.message.from.id}`;
             { text: "🔄 Заповнити анкету знову" },
           ],
           [{ text: "🐣 Зв'язок з розробником" }],
-          [{ text: "🌐 Відкрити сайт" }],
+          [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
         ],
         resize_keyboard: true,
       },
@@ -398,7 +403,7 @@ WHERE tg_id = ${ctx.message.from.id}`;
             { text: "🔄 Заповнити анкету знову" },
           ],
           [{ text: "🐣 Зв'язок з розробником" }],
-          [{ text: "🌐 Відкрити сайт" }],
+          [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
         ],
         resize_keyboard: true,
       },
@@ -425,7 +430,7 @@ bot.hears("👎", async (ctx) => {
             { text: "🔄 Заповнити анкету знову" },
           ],
           [{ text: "🐣 Зв'язок з розробником" }],
-          [{ text: "🌐 Відкрити сайт" }],
+          [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
         ],
         resize_keyboard: true,
       },
@@ -531,7 +536,7 @@ bot.hears("⬅️ Назад", async (ctx) => {
           { text: "🔄 Заповнити анкету знову" },
         ],
         [{ text: "🐣 Зв'язок з розробником" }],
-        [{ text: "🌐 Відкрити сайт" }],
+        [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
       ],
       resize_keyboard: true,
     },
@@ -605,7 +610,7 @@ bot.hears("👤 Мій профіль", async (ctx) => {
 
   const me = myAcc.rows[0];
 
-  if (myAcc.rows) {
+  if (me) {
     const message = `👤Ім'я: ${me?.name}\n\n🕐Вік: ${me?.age}\n\n💁Інфа: ${me?.text}`;
     if (me?.type === "photo") {
       await ctx.replyWithPhoto(
@@ -663,23 +668,23 @@ bot.hears(`✔️`, async (ctx) => {
           { text: "🔄 Заповнити анкету знову" },
         ],
         [{ text: "🐣 Зв'язок з розробником" }],
-        [{ text: "🌐 Відкрити сайт" }],
+        [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
       ],
       resize_keyboard: true,
     },
   });
 });
-bot.hears(`🌐 Відкрити сайт`, async (ctx) => {
-  ctx.reply("Наш веб сайт", {
-    reply_markup: {
-      keyboard: [
-        [{ text: "SITE", web_app: { url: "https://enjoyhub.space" } }],
-        [{ text: "✔️" }],
-      ],
-      resize_keyboard: true,
-    },
-  });
-});
+// bot.hears(`🌐 Відкрити сайт`, async (ctx) => {
+//   ctx.reply("Наш веб сайт", {
+//     reply_markup: {
+//       keyboard: [
+//         [{ text: "SITE", web_app: { url: "https://enjoyhub.space" } }],
+//         [{ text: "✔️" }],
+//       ],
+//       resize_keyboard: true,
+//     },
+//   });
+// });
 bot.hears(`Купити 🌟 Premium`, async (ctx) => {
   ctx.reply(
     "Натисніть для перегляду тарифних планів",
@@ -760,14 +765,14 @@ bot.action("omg_tarif", async (ctx) => {
 });
 
 //
-// Тариф Light 50 грн
+
 // const sendMessageToUsers = async ()=>{
 //   try {
 //     const result = await pool.query(`select * from users`);
 //     for (let i = 0; i < result.rows.length; i++) {
 //     const el = result.rows[i];
 //     console.log(el.tg_id);
-//     bot.telegram.sendMessage(el.tg_id,'Функції бота відновлено')
+//     bot.telegram.sendMessage(el.tg_id,'Ми перїхали: @EnjoyHubBot')
 //     // ctx.sendMessage('Додав нову фічуууууу.Сайт який відкривається прям в БОТІ....Гиии )',{chat_id:el.tg_id})
 //   }
 //   } catch (error) {
@@ -1044,7 +1049,8 @@ where user_id2 = ${ctx.message.from.id} and is_show = 0`);
             { text: "🔄 Заповнити анкету знову" },
           ],
           [{ text: "🐣 Зв'язок з розробником" }],
-          [{ text: "🌐 Відкрити сайт" }],
+          [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
+   
         ],
         resize_keyboard: true,
       },
@@ -1073,7 +1079,7 @@ where user_id2 = ${ctx.message.from.id} and is_show = 0`);
             { text: "🔄 Заповнити анкету знову" },
           ],
           [{ text: "🐣 Зв'язок з розробником" }],
-          [{ text: "🌐 Відкрити сайт" }],
+          [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
         ],
         resize_keyboard: true,
       },

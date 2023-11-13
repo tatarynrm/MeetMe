@@ -16,7 +16,6 @@ function getDistanceString(point1, point2) {
             unit = 'км';
             distance = (distanceInMeters / 1000 ).toFixed(1);
         }
-    
         // Виведення результату
         return `${distance} ${unit}`
 
