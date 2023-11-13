@@ -946,9 +946,10 @@ bot.hears("💌 Мої вподобайки", async (ctx) => {
   left join users e on a.user_id1 = e.tg_id
   where user_id2 = ${ctx.message.from.id} and is_show = 0`);
   const myLikes = result.rows;
-console.log(myLikes);
+
   if (myLikes.length > 0) {
     usersLikesProfiles.push(...myLikes);
+    console.log(usersLikesProfiles);
     if (usersLikesIndex < usersLikesProfiles.length) {
       sendLikeProfile(ctx);
     }
@@ -989,18 +990,14 @@ async function sendLikeProfile(ctx) {
         ? getDistanceString(myPoint, userPoint)
         : " "
     } \n\n📔 ${currentProfile?.text ? currentProfile?.text : null}`;
-  } else if (
-    myPoint === null ||
-    userPoint === null ||
-    myPoint === undefined ||
-    userPoint === undefined
-  ) {
+  } 
+else {
     message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
       currentProfile?.name ? currentProfile?.name : null
     }\n\n🕤 ${currentProfile.age ? currentProfile.age : null}р. \n\n📔 ${
       currentProfile?.text ? currentProfile?.text : null
     }`;
-  }
+}
 
   if (currentProfile.type === "photo") {
     await ctx.replyWithPhoto(
