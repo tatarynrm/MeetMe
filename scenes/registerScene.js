@@ -334,6 +334,7 @@ const registrationScene = new Scenes.WizardScene(
         ctx.scene.leave();
       } else {
         ctx.reply("Ви перевищили ліміт фото (1).");
+        return
       }
     } else if (ctx.message.video) {
       if (ctx.message.video.duration > 15) {
@@ -457,6 +458,7 @@ const registrationScene = new Scenes.WizardScene(
       }
     } else {
       ctx.reply("Камон....давай фоточку або відосік");
+      return
     }
   }
 );
