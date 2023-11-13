@@ -33,6 +33,7 @@ const buildTree = require("./helpers/referalsTree/referals");
 const changeNumberScene = require("./scenes/changeNumberScene");
 const public_key = "sandbox_i31110430124";
 const private_key = "sandbox_HJjraXMdCLnz3ApcEJOYCjmSgRjhsjtuvFSVmVci";
+const statisticRouter = require('./routes/statistic')
 var liqpay = new LiqPay(public_key, private_key);
 
 // stage.register(registrationScene);
@@ -48,6 +49,7 @@ app.use(
   })
 );
 app.use("/liqpay", liqpayRouter);
+app.use('/statistic',statisticRouter)
 
 const stage = new Scenes.Stage([
   registrationScene,
@@ -95,8 +97,9 @@ const getInvoice = async (amount, username, customer) => {
 let users = {};
 
 bot.start(async (ctx) => {
-  const user = ctx.message.from;
+ 
   try {
+    const user = ctx.message.from;
     await createUser(user);
 
     const userInfo = await pool.query(
@@ -467,6 +470,8 @@ bot.hears("💰 Реферальне посилання", async (ctx) => {
 });
 
 bot.command("myprofile", async (ctx) => {
+  const user = ctx.message.from;
+  await createUser(user);
   const myAcc = await pool.query(`
   SELECT a.*, b.photo_url,b.type
   FROM users_info AS a
@@ -625,7 +630,8 @@ bot.hears("👤 Мій профіль", async (ctx) => {
   LEFT JOIN users_photos AS b ON a.user_id = b.user_id
   WHERE a.user_id = ${ctx.message.from.id};
   `);
-
+  const user = ctx.message.from;
+  await createUser(user);
   const me = myAcc.rows[0];
 
   if (me) {
