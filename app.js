@@ -667,7 +667,6 @@ if (me.photo_url) {
             [{ text: "⚙ Налаштування" }],
             [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
             [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
-            [{ text: "Веб" }],
             [{ text: "⬅️ Назад" }],
           ],
           resize_keyboard: true,
