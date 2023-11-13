@@ -30,6 +30,7 @@ const getDistanceString = require("./helpers/getKilomiters");
 const updateLikes = require("./helpers/updateLikesCountEveryDay");
 const updateLikesForEveryUser = require("./helpers/updateLikesCountEveryDay");
 const buildTree = require("./helpers/referalsTree/referals");
+const changeNumberScene = require("./scenes/changeNumberScene");
 const public_key = "sandbox_i31110430124";
 const private_key = "sandbox_HJjraXMdCLnz3ApcEJOYCjmSgRjhsjtuvFSVmVci";
 var liqpay = new LiqPay(public_key, private_key);
@@ -54,6 +55,7 @@ const stage = new Scenes.Stage([
   changeNameScene,
   changeAgeScene,
   changeInfoScene,
+  changeNumberScene
 ]);
 
 bot.use(session());

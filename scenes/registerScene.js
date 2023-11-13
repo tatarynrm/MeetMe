@@ -146,12 +146,48 @@ if (ctx.message.location) {
     return ctx.scene.leave();
   }
 await  ctx.reply(`Чудово.Ваше місцезнаходження ${city}`)
- await ctx.reply(`Тепер , розкажіть декілька слів про себе!`, { reply_markup: { remove_keyboard: true } });
+//  await ctx.reply(`Тепер , розкажіть декілька слів про себе!`, { reply_markup: { remove_keyboard: true } });
+const requestPhoneButton = Markup.button.contactRequest(
+  "Поділитись контактом ☎️"
+);
+const keyboard = Markup.keyboard([requestPhoneButton]).resize();
+ctx.reply(`Поділитись своїм контактом.`,keyboard);
   return ctx.wizard.next();
 }else {
   ctx.reply('Поділіться локацією через кнопку!')
   return
 }
+  },
+  async (ctx) => {
+    const result = await pool.query(
+      `select number from users_info where user_id = ${ctx.message.from.id}`
+    );
+    const number = ctx.message?.contact?.phone_number
+    const phoneRegex = /^\d{12}$/;
+    const isValidPhoneNumber = (phoneNumber) => {
+      return phoneRegex.test(phoneNumber);
+    };
+    if (ctx.message.text === "/start") {
+      return ctx.scene.leave();
+    }
+
+    if (isValidPhoneNumber(number)) {
+      userData.number = number
+        await ctx.reply(`Номер +${number} успішно збережений\n\nТепер розкажіть декілька слів про себе!`,{
+          reply_markup: { remove_keyboard: true },
+        })
+    
+      
+        return ctx.wizard.next();
+    }else {
+      await ctx.reply('Еееее....а номер ?)')
+    }
+  
+ 
+  
+
+
+
   },
   async (ctx) => {
     const bio = ctx.message.text;
@@ -210,6 +246,7 @@ await  ctx.reply(`Чудово.Ваше місцезнаходження ${city}
           id: ctx.message.from.id,
           latitude:userData.latitude,
           longitude:userData.longitude,
+          number:userData.number
         };
         saveLocationInTheEnd(ctx,registrationData.latitude,registrationData.longitude)
 
@@ -219,12 +256,12 @@ await  ctx.reply(`Чудово.Ваше місцезнаходження ${city}
         console.log("EXISTING USERS_INFO", existUserInfo);
         if (existUserInfo.rows <= 0) {
           const res1 =
-            await pool.query(`insert into users_info (name,age,text,user_id,sex,looking)
-    values('${registrationData.name}',${registrationData.age},'${registrationData.bio}',${registrationData.id},'${registrationData.sex}','${registrationData.looking}')
+            await pool.query(`insert into users_info (name,age,text,user_id,sex,looking,number)
+    values('${registrationData.name}',${registrationData.age},'${registrationData.bio}',${registrationData.id},'${registrationData.sex}','${registrationData.looking}','${registrationData.number}')
     `);
         } else {
           const updateQuery =
-            "UPDATE users_info SET name = $1, age = $2, text = $3,sex=$4,looking=$5 WHERE user_id = $6";
+            "UPDATE users_info SET name = $1, age = $2, text = $3,sex=$4,looking=$5,number=$6 WHERE user_id = $7";
 
           const res = pool.query(
             updateQuery,
@@ -234,7 +271,9 @@ await  ctx.reply(`Чудово.Ваше місцезнаходження ${city}
               registrationData.bio,
               registrationData.sex,
               registrationData.looking,
-              registrationData.id,
+              registrationData.number,
+              registrationData.id,  
+
             ],
             (err, result) => {
               if (err) {
@@ -322,6 +361,7 @@ await  ctx.reply(`Чудово.Ваше місцезнаходження ${city}
           id: ctx.message.from.id,
           latitude:userData.latitude,
           longitude:userData.longitude,
+          number:userData.number
         };
         saveLocationInTheEnd(ctx,registrationData.latitude,registrationData.longitude)
         const existUserInfo = await pool.query(
@@ -330,12 +370,12 @@ await  ctx.reply(`Чудово.Ваше місцезнаходження ${city}
         console.log("EXISTING USERS_INFO", existUserInfo);
         if (existUserInfo.rows <= 0) {
           const res1 =
-            await pool.query(`insert into users_info (name,age,text,user_id,sex,looking)
-    values('${registrationData.name}',${registrationData.age},'${registrationData.bio}',${registrationData.id},'${registrationData.sex}','${registrationData.looking}')
+            await pool.query(`insert into users_info (name,age,text,user_id,sex,looking,number)
+    values('${registrationData.name}',${registrationData.age},'${registrationData.bio}',${registrationData.id},'${registrationData.sex}','${registrationData.looking}','${registrationData.number}')
     `);
         } else {
           const updateQuery =
-            "UPDATE users_info SET name = $1, age = $2, text = $3,sex=$4,looking=$5 WHERE user_id = $6";
+            "UPDATE users_info SET name = $1, age = $2, text = $3,sex=$4,looking=$5,number=$6 WHERE user_id = $7";
           const res = pool.query(
             updateQuery,
             [
@@ -344,7 +384,8 @@ await  ctx.reply(`Чудово.Ваше місцезнаходження ${city}
               registrationData.bio,
               registrationData.sex,
               registrationData.looking,
-              registrationData.id,
+              registrationData.number,  
+              registrationData.id,  
             ],
             (err, result) => {
               if (err) {
