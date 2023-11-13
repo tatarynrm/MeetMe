@@ -259,6 +259,7 @@ ctx.reply(`Поділитись своїм контактом.`,keyboard);
             await pool.query(`insert into users_info (name,age,text,user_id,sex,looking,number)
     values('${registrationData.name}',${registrationData.age},'${registrationData.bio}',${registrationData.id},'${registrationData.sex}','${registrationData.looking}','${registrationData.number}')
     `);
+    const registerActionLog = await pool.query(`select log_user_action values(${ctx.message.from.id},'REGISTER')`)
         } else {
           const updateQuery =
             "UPDATE users_info SET name = $1, age = $2, text = $3,sex=$4,looking=$5,number=$6 WHERE user_id = $7";
@@ -284,7 +285,7 @@ ctx.reply(`Поділитись своїм контактом.`,keyboard);
             }
           );
         }
-
+        const UPDATE_REGISTER_ACTION = await pool.query(`select log_user_action values(${ctx.message.from.id},'UPDATE_REGISTER')`)
         const existPhoto = await pool.query(
           `select * from users_photos where user_id = ${ctx.message.from.id}`
         );
