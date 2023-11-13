@@ -5,7 +5,10 @@ const fs = require("fs");
 const axios = require("axios");
 const path = require("path");
 const downloadAndSaveFile = require("../helpers/savePhotos");
-const {saveLocation, saveLocationInTheEnd} = require("../helpers/saveLocation");
+const {
+  saveLocation,
+  saveLocationInTheEnd,
+} = require("../helpers/saveLocation");
 const reverseGeocode = require("../helpers/reverseGeocode");
 
 const savePath = "../downloads/";
@@ -122,47 +125,51 @@ const registrationScene = new Scenes.WizardScene(
     const requestLocationButton = Markup.button.locationRequest(
       "Надіслати свою локацію 📍"
     );
-  
+
     // Creating a keyboard with the location button
     const keyboard = Markup.keyboard([requestLocationButton]).resize();
-    ctx.reply(`Для користування ботом вам необхідно поділитись своєю локацією 📍`,keyboard);
+    ctx.reply(
+      `Для користування ботом вам необхідно поділитись своєю локацією 📍`,
+      keyboard
+    );
     return ctx.wizard.next();
   },
   async (ctx) => {
-
-if (ctx.message.location) {
-  const latitude = ctx.message.location.latitude;
-  const longitude = ctx.message.location.longitude;
-  userData.latitude = ctx.message.location.latitude
-  userData.longitude = ctx.message.location.longitude
-  const address = await reverseGeocode(latitude,longitude);
-  saveLocation(ctx)
-  const userLocation = address.address_components;
-  const cityFind = userLocation.filter((item) => {
-    return item.types.includes("locality") & item.types.includes("political");
-  });
-  const city = cityFind[0].long_name;
-  if (ctx.message.text === "/start") {
-    return ctx.scene.leave();
-  }
-await  ctx.reply(`Чудово.Ваше місцезнаходження ${city}`)
-//  await ctx.reply(`Тепер , розкажіть декілька слів про себе!`, { reply_markup: { remove_keyboard: true } });
-const requestPhoneButton = Markup.button.contactRequest(
-  "Поділитись контактом ☎️"
-);
-const keyboard = Markup.keyboard([requestPhoneButton]).resize();
-ctx.reply(`Поділитись своїм контактом.`,keyboard);
-  return ctx.wizard.next();
-}else {
-  ctx.reply('Поділіться локацією через кнопку!')
-  return
-}
+    if (ctx.message.location) {
+      const latitude = ctx.message.location.latitude;
+      const longitude = ctx.message.location.longitude;
+      userData.latitude = ctx.message.location.latitude;
+      userData.longitude = ctx.message.location.longitude;
+      const address = await reverseGeocode(latitude, longitude);
+      saveLocation(ctx);
+      const userLocation = address.address_components;
+      const cityFind = userLocation.filter((item) => {
+        return (
+          item.types.includes("locality") & item.types.includes("political")
+        );
+      });
+      const city = cityFind[0].long_name;
+      if (ctx.message.text === "/start") {
+        return ctx.scene.leave();
+      }
+      await ctx.reply(`Чудово.Ваше місцезнаходження ${city}`);
+      //  await ctx.reply(`Тепер , розкажіть декілька слів про себе!`, { reply_markup: { remove_keyboard: true } });
+      const requestPhoneButton = Markup.button.contactRequest(
+        "Поділитись контактом ☎️"
+      );
+      const keyboard = Markup.keyboard([requestPhoneButton]).resize();
+      ctx.reply(`Поділитись своїм контактом.`, keyboard);
+      return ctx.wizard.next();
+    } else {
+      ctx.reply("Поділіться локацією через кнопку!");
+      return;
+    }
   },
   async (ctx) => {
     const result = await pool.query(
       `select number from users_info where user_id = ${ctx.message.from.id}`
     );
-    const number = ctx.message?.contact?.phone_number
+    const number = ctx.message?.contact?.phone_number;
     const phoneRegex = /^\d{12}$/;
     const isValidPhoneNumber = (phoneNumber) => {
       return phoneRegex.test(phoneNumber);
@@ -172,22 +179,18 @@ ctx.reply(`Поділитись своїм контактом.`,keyboard);
     }
 
     if (isValidPhoneNumber(number)) {
-      userData.number = number
-        await ctx.reply(`Номер +${number} успішно збережений\n\nТепер розкажіть декілька слів про себе!`,{
+      userData.number = number;
+      await ctx.reply(
+        `Номер +${number} успішно збережений\n\nТепер розкажіть декілька слів про себе!`,
+        {
           reply_markup: { remove_keyboard: true },
-        })
-    
-      
-        return ctx.wizard.next();
-    }else {
-      await ctx.reply('Еееее....а номер ?)')
+        }
+      );
+
+      return ctx.wizard.next();
+    } else {
+      await ctx.reply("Еееее....а номер ?)");
     }
-  
- 
-  
-
-
-
   },
   async (ctx) => {
     const bio = ctx.message.text;
@@ -244,11 +247,15 @@ ctx.reply(`Поділитись своїм контактом.`,keyboard);
           bio: userData.bio,
           photos: userData.photos || [],
           id: ctx.message.from.id,
-          latitude:userData.latitude,
-          longitude:userData.longitude,
-          number:userData.number
+          latitude: userData.latitude,
+          longitude: userData.longitude,
+          number: userData.number,
         };
-        saveLocationInTheEnd(ctx,registrationData.latitude,registrationData.longitude)
+        saveLocationInTheEnd(
+          ctx,
+          registrationData.latitude,
+          registrationData.longitude
+        );
 
         const existUserInfo = await pool.query(
           `select * from users_info where user_id = ${registrationData.id}`
@@ -259,7 +266,9 @@ ctx.reply(`Поділитись своїм контактом.`,keyboard);
             await pool.query(`insert into users_info (name,age,text,user_id,sex,looking,number)
     values('${registrationData.name}',${registrationData.age},'${registrationData.bio}',${registrationData.id},'${registrationData.sex}','${registrationData.looking}','${registrationData.number}')
     `);
-    const registerActionLog = await pool.query(`select log_user_action values(${ctx.message.from.id},'REGISTER')`)
+          const registerActionLog = await pool.query(
+            `select log_user_action(${ctx.message.from.id},'REGISTER')`
+          );
         } else {
           const updateQuery =
             "UPDATE users_info SET name = $1, age = $2, text = $3,sex=$4,looking=$5,number=$6 WHERE user_id = $7";
@@ -273,8 +282,7 @@ ctx.reply(`Поділитись своїм контактом.`,keyboard);
               registrationData.sex,
               registrationData.looking,
               registrationData.number,
-              registrationData.id,  
-
+              registrationData.id,
             ],
             (err, result) => {
               if (err) {
@@ -285,7 +293,9 @@ ctx.reply(`Поділитись своїм контактом.`,keyboard);
             }
           );
         }
-        const UPDATE_REGISTER_ACTION = await pool.query(`select log_user_action values(${ctx.message.from.id},'UPDATE_REGISTER')`)
+        const UPDATE_REGISTER_ACTION = await pool.query(
+          `select log_user_action(${ctx.message.from.id},'UPDATE_REGISTER')`
+        );
         const existPhoto = await pool.query(
           `select * from users_photos where user_id = ${ctx.message.from.id}`
         );
@@ -360,11 +370,15 @@ ctx.reply(`Поділитись своїм контактом.`,keyboard);
           bio: userData.bio,
           photos: userData.photos || [],
           id: ctx.message.from.id,
-          latitude:userData.latitude,
-          longitude:userData.longitude,
-          number:userData.number
+          latitude: userData.latitude,
+          longitude: userData.longitude,
+          number: userData.number,
         };
-        saveLocationInTheEnd(ctx,registrationData.latitude,registrationData.longitude)
+        saveLocationInTheEnd(
+          ctx,
+          registrationData.latitude,
+          registrationData.longitude
+        );
         const existUserInfo = await pool.query(
           `select * from users_info where user_id = ${registrationData.id}`
         );
@@ -374,6 +388,9 @@ ctx.reply(`Поділитись своїм контактом.`,keyboard);
             await pool.query(`insert into users_info (name,age,text,user_id,sex,looking,number)
     values('${registrationData.name}',${registrationData.age},'${registrationData.bio}',${registrationData.id},'${registrationData.sex}','${registrationData.looking}','${registrationData.number}')
     `);
+          const registerActionLog = await pool.query(
+            `select log_user_action(${ctx.message.from.id},'REGISTER')`
+          );
         } else {
           const updateQuery =
             "UPDATE users_info SET name = $1, age = $2, text = $3,sex=$4,looking=$5,number=$6 WHERE user_id = $7";
@@ -385,8 +402,8 @@ ctx.reply(`Поділитись своїм контактом.`,keyboard);
               registrationData.bio,
               registrationData.sex,
               registrationData.looking,
-              registrationData.number,  
-              registrationData.id,  
+              registrationData.number,
+              registrationData.id,
             ],
             (err, result) => {
               if (err) {
@@ -397,7 +414,9 @@ ctx.reply(`Поділитись своїм контактом.`,keyboard);
             }
           );
         }
-
+        const UPDATE_REGISTER_ACTION = await pool.query(
+          `select log_user_action(${ctx.message.from.id},'UPDATE_REGISTER')`
+        );
         // Perform database or storage operations here
 
         const existPhoto = await pool.query(
