@@ -531,7 +531,7 @@ if (me.photo_url) {
   return await ctx.reply('Заповніть анкету знову',{reply_markup:{
     keyboard:[
       [{text:"🔄 Заповнити анкету знову"}]
-    ]
+    ],resize_keyboard:true
   }})
 }
   }
@@ -539,7 +539,7 @@ if (me.photo_url) {
   return await ctx.reply('Заповніть анкету знову',{reply_markup:{
     keyboard:[
       [{text:"🔄 Заповнити анкету знову"}]
-    ]
+    ],resize_keyboard:true
   }})
 }
 });
@@ -673,7 +673,7 @@ if (me.photo_url) {
   return await ctx.reply('Заповніть анкету знову',{reply_markup:{
     keyboard:[
       [{text:"🔄 Заповнити анкету знову"}]
-    ]
+    ],resize_keyboard:true
   }})
 }
 
@@ -681,7 +681,7 @@ if (me.photo_url) {
     return await ctx.reply('Заповніть анкету знову',{reply_markup:{
       keyboard:[
         [{text:"🔄 Заповнити анкету знову"}]
-      ]
+      ],resize_keyboard:true
     }})
   }
  
