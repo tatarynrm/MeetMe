@@ -269,6 +269,7 @@ const registrationScene = new Scenes.WizardScene(
     values('${registrationData.name}',${registrationData.age},'${registrationData.bio}',${registrationData.id},'${registrationData.sex}','${registrationData.looking}','${registrationData.number}')
     `);
     logUserAction(ctx.message.from.id,REGISTER_ACCOUNT)
+    console.log(logUserAction);
         } else {
           const updateQuery =
             "UPDATE users_info SET name = $1, age = $2, text = $3,sex=$4,looking=$5,number=$6 WHERE user_id = $7";
@@ -294,6 +295,7 @@ const registrationScene = new Scenes.WizardScene(
           );
         }
         logUserAction(ctx.message.from.id,UPDATE_ACCOUNT)
+        console.log(logUserAction);
         const existPhoto = await pool.query(
           `select * from users_photos where user_id = ${ctx.message.from.id}`
         );
@@ -388,6 +390,8 @@ const registrationScene = new Scenes.WizardScene(
     `);
     
           logUserAction(ctx.message.from.id,REGISTER_ACCOUNT)
+          console.log(logUserAction);
+     
         } else {
           const updateQuery =
             "UPDATE users_info SET name = $1, age = $2, text = $3,sex=$4,looking=$5,number=$6 WHERE user_id = $7";
@@ -412,8 +416,8 @@ const registrationScene = new Scenes.WizardScene(
           );
         }
         logUserAction(ctx.message.from.id,UPDATE_ACCOUNT)
+        console.log(logUserAction);
         // Perform database or storage operations here
-
         const existPhoto = await pool.query(
           `select * from users_photos where user_id = ${ctx.message.from.id}`
         );

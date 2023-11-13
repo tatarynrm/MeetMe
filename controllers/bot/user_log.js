@@ -1,6 +1,6 @@
 const pool = require("../../db/pool");
 
-async function logUserAction(tgId, actionDescription) {
+async function logUserAction(tgId, actionDescription,ctx) {
     try {
         // Виклик функції в базі даних
         const query = {
@@ -8,8 +8,9 @@ async function logUserAction(tgId, actionDescription) {
             values: [tgId, actionDescription],
         };
 
-        await pool.query(query);
-        console.log('User action logged successfully.');
+       const result = await pool.query(query);
+  
+    
     } catch (error) {
         console.error('Error logging user action:', error);
     } 
