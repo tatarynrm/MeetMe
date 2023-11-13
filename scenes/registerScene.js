@@ -10,6 +10,8 @@ const {
   saveLocationInTheEnd,
 } = require("../helpers/saveLocation");
 const reverseGeocode = require("../helpers/reverseGeocode");
+const { logUserAction } = require("../controllers/bot/user_log");
+const { REGISTER_ACCOUNT, UPDATE_ACCOUNT } = require("../controllers/bot/actions_string");
 
 const savePath = "../downloads/";
 const { enter, leave } = Scenes.Stage;
@@ -266,9 +268,7 @@ const registrationScene = new Scenes.WizardScene(
             await pool.query(`insert into users_info (name,age,text,user_id,sex,looking,number)
     values('${registrationData.name}',${registrationData.age},'${registrationData.bio}',${registrationData.id},'${registrationData.sex}','${registrationData.looking}','${registrationData.number}')
     `);
-          const registerActionLog = await pool.query(
-            `select log_user_action(${ctx.message.from.id},'REGISTER')`
-          );
+    logUserAction(ctx.message.from.id,REGISTER_ACCOUNT)
         } else {
           const updateQuery =
             "UPDATE users_info SET name = $1, age = $2, text = $3,sex=$4,looking=$5,number=$6 WHERE user_id = $7";
@@ -293,9 +293,7 @@ const registrationScene = new Scenes.WizardScene(
             }
           );
         }
-        const UPDATE_REGISTER_ACTION = await pool.query(
-          `select log_user_action(${ctx.message.from.id},'UPDATE_REGISTER')`
-        );
+        logUserAction(ctx.message.from.id,UPDATE_ACCOUNT)
         const existPhoto = await pool.query(
           `select * from users_photos where user_id = ${ctx.message.from.id}`
         );
@@ -388,9 +386,8 @@ const registrationScene = new Scenes.WizardScene(
             await pool.query(`insert into users_info (name,age,text,user_id,sex,looking,number)
     values('${registrationData.name}',${registrationData.age},'${registrationData.bio}',${registrationData.id},'${registrationData.sex}','${registrationData.looking}','${registrationData.number}')
     `);
-          const registerActionLog = await pool.query(
-            `select log_user_action(${ctx.message.from.id},'REGISTER')`
-          );
+    
+          logUserAction(ctx.message.from.id,REGISTER_ACCOUNT)
         } else {
           const updateQuery =
             "UPDATE users_info SET name = $1, age = $2, text = $3,sex=$4,looking=$5,number=$6 WHERE user_id = $7";
@@ -414,9 +411,7 @@ const registrationScene = new Scenes.WizardScene(
             }
           );
         }
-        const UPDATE_REGISTER_ACTION = await pool.query(
-          `select log_user_action(${ctx.message.from.id},'UPDATE_REGISTER')`
-        );
+        logUserAction(ctx.message.from.id,UPDATE_ACCOUNT)
         // Perform database or storage operations here
 
         const existPhoto = await pool.query(
