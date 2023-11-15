@@ -33,9 +33,12 @@ const buildTree = require("./helpers/referalsTree/referals");
 const changeNumberScene = require("./scenes/changeNumberScene");
 const public_key = "sandbox_i31110430124";
 const private_key = "sandbox_HJjraXMdCLnz3ApcEJOYCjmSgRjhsjtuvFSVmVci";
-const statisticRouter = require('./routes/statistic');
-const { generetaTarifKeyboard } = require("./helpers/tarif/generateTarifKeyboard");
+const statisticRouter = require("./routes/statistic");
+const {
+  generetaTarifKeyboard,
+} = require("./helpers/tarif/generateTarifKeyboard");
 const { botStart } = require("./bot_commands/bot_start");
+const { sendMsgLove } = require("./bot_functions/sendMsgToUserThatLike");
 var liqpay = new LiqPay(public_key, private_key);
 
 // stage.register(registrationScene);
@@ -51,7 +54,7 @@ app.use(
   })
 );
 app.use("/liqpay", liqpayRouter);
-app.use('/statistic',statisticRouter)
+app.use("/statistic", statisticRouter);
 
 const stage = new Scenes.Stage([
   registrationScene,
@@ -59,7 +62,7 @@ const stage = new Scenes.Stage([
   changeNameScene,
   changeAgeScene,
   changeInfoScene,
-  changeNumberScene
+  changeNumberScene,
 ]);
 
 bot.use(session());
@@ -97,9 +100,8 @@ const getInvoice = async (amount, username, customer) => {
   }
 };
 
-
 bot.start(async (ctx) => {
- botStart(ctx)
+  botStart(ctx);
 });
 
 bot.hears("Преміум 1 тиждень", async (ctx) => {
@@ -145,98 +147,144 @@ bot.hears("👀 Дивитись анкети", async (ctx) => {
   const myParams = await pool.query(
     `select * from users_info where user_id = ${ctx.message.from.id}`
   );
-if (likesPerDay || myParams.rows[0]?.looking ) {
-  let profiles1 = [];
-  const paramsSex = myParams?.rows[0]?.looking;
-  const myLikes = likesPerDay?.rows[0]?.likes;
-  if (myLikes > 0) {
-    if (paramsSex === "M") {
-      profiles1 = await pool.query(`
-    SELECT a.*, b.photo_url, b.type, c.*
+
+  if (likesPerDay || myParams.rows[0]?.looking) {
+    let profiles1 = [];
+    const paramsSex = myParams?.rows[0]?.looking;
+    const myLikes = likesPerDay?.rows[0]?.likes;
+    if (myLikes > 0) {
+      if (paramsSex === "M") {
+        profiles1 = await pool.query(`
+    SELECT a.*, b.photo_url, b.type, c.*,d.user_like as us_like,d.user_dislike as ds_like
     FROM users_info AS a
     LEFT JOIN users_photos AS b ON a.user_id = b.user_id 
     LEFT JOIN users_location AS c ON a.user_id = c.user_id
+    LEFT JOIN users_like_count AS d ON a.user_id = d.user_id
     WHERE a.user_id != ${ctx.message.from.id} AND a.sex = 'M'
   `);
-    } else if (paramsSex === "W") {
-      profiles1 = await pool.query(`
-    SELECT a.*, b.photo_url, b.type, c.*
-    FROM users_info AS a
-    LEFT JOIN users_photos AS b ON a.user_id = b.user_id 
-    LEFT JOIN users_location AS c ON a.user_id = c.user_id
+
+      } else if (paramsSex === "W") {
+        profiles1 = await pool.query(`
+        SELECT a.*, b.photo_url, b.type, c.*,d.user_like as us_like,d.user_dislike as ds_like
+        FROM users_info AS a
+        LEFT JOIN users_photos AS b ON a.user_id = b.user_id 
+        LEFT JOIN users_location AS c ON a.user_id = c.user_id
+        LEFT JOIN users_like_count AS d ON a.user_id = d.user_id
     WHERE a.user_id != ${ctx.message.from.id} AND a.sex = 'W'
   `);
-    } else {
-      profiles1 = await pool.query(`
-    SELECT a.*, b.photo_url, b.type, c.*
-    FROM users_info AS a
-    LEFT JOIN users_photos AS b ON a.user_id = b.user_id 
-    LEFT JOIN users_location AS c ON a.user_id = c.user_id
+      } else {
+        profiles1 = await pool.query(`
+        SELECT a.*, b.photo_url, b.type, c.*,d.user_like as us_like,d.user_dislike as ds_like
+        FROM users_info AS a
+        LEFT JOIN users_photos AS b ON a.user_id = b.user_id 
+        LEFT JOIN users_location AS c ON a.user_id = c.user_id
+        LEFT JOIN users_like_count AS d ON a.user_id = d.user_id
     WHERE a.user_id != ${ctx.message.from.id}
   `);
-    }
-    const usersProfile = profiles1.rows;
-    if (usersProfile.length > 0) {
-      profiles.push(...usersProfile);
-      if (currentProfileIndex < profiles.length) {
-        sendProfile(ctx);
+      }
+      const usersProfile = profiles1.rows;
+      console.log(profiles1.rows);
+      if (usersProfile.length > 0) {
+        profiles.push(...usersProfile);
+        if (currentProfileIndex < profiles.length) {
+          sendProfile(ctx);
+        }
+      } else {
+        await ctx.reply("Анкет не знайдено.Змініть фільтри пошуку");
       }
     } else {
-      await ctx.reply("Анкет не знайдено.Змініть фільтри пошуку");
+      ctx.reply("На сьогодні усі лайки завершились.");
     }
   } else {
-    ctx.reply("На сьогодні усі лайки завершились.");
+    await ctx.reply("Натисність /start");
   }
-}else {
-  await ctx.reply('Натисність /start')
-}
 });
 async function sendProfile(ctx) {
+  const myPremiumAcc = await pool.query(`select is_premium from users where tg_id = ${ctx.message.from.id}`);
+  const premium = myPremiumAcc.rows[0].is_premium;
+  console.log(premium);
   const myLocation = await pool.query(
     `select lat,long from users_location where user_id =${ctx.message.from.id}`
   );
-  if (myLocation === undefined || myLocation === null || myLocation.rows.length <= 0) {
-    await ctx.reply('Щось пішло не так.\n\nНатисніть на /start')
-  }else {
+  if (
+    myLocation === undefined ||
+    myLocation === null ||
+    myLocation.rows.length <= 0
+  ) {
+    await ctx.reply("Щось пішло не так.\n\nНатисніть на /start");
+  } else {
     const myLoc = myLocation.rows[0];
     const currentProfile = profiles[currentProfileIndex];
     const keyboard = Markup.inlineKeyboard([
       Markup.button.callback("Option 1", "option1"),
       Markup.button.callback("Option 2", "option2"),
     ]);
-  
+
     const myPoint = { latitude: myLoc.lat, longitude: myLoc.long };
     const userPoint = {
       latitude: currentProfile.lat,
       longitude: currentProfile.long,
     };
     let message = "";
-    if (
-      myPoint !== null ||
-      userPoint !== null ||
-      myPoint !== undefined ||
-      userPoint !== undefined
-    ) {
-      message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
-        currentProfile?.name ? currentProfile?.name : null
-      }\n\n🕤 ${currentProfile.age ? currentProfile.age : null}р. 📍- ${
-        getDistanceString(myPoint, userPoint)
-          ? getDistanceString(myPoint, userPoint)
-          : " "
-      } \n\n📔 ${currentProfile?.text ? currentProfile?.text : null}`;
-    } else if (
-      myPoint === null ||
-      userPoint === null ||
-      myPoint === undefined ||
-      userPoint === undefined
-    ) {
-      message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
-        currentProfile?.name ? currentProfile?.name : null
-      }\n\n🕤 ${currentProfile.age ? currentProfile.age : null}р. \n\n📔 ${
-        currentProfile?.text ? currentProfile?.text : null
-      }`;
-    }
-  
+if (premium) {
+  if (
+    myPoint !== null ||
+    userPoint !== null ||
+    myPoint !== undefined ||
+    userPoint !== undefined
+  ) {
+    message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
+      currentProfile?.name ? currentProfile?.name : null
+    }\n\n🕤 ${currentProfile.age ? currentProfile.age : null}р. 📍- ${
+      getDistanceString(myPoint, userPoint)
+        ? getDistanceString(myPoint, userPoint)
+        : " "
+    } \n\n📔 ${currentProfile?.text ? currentProfile?.text : null}\n\nВаш PREMIUM доступ 👑 \n❤️ ${currentProfile.us_like ? currentProfile.us_like : "-" }     👎 ${currentProfile.ds_like  ? currentProfile.ds_like : "-"}`;
+  }
+  else if (
+    myPoint === null ||
+    userPoint === null ||
+    myPoint === undefined ||
+    userPoint === undefined
+  ) {
+    message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
+      currentProfile?.name ? currentProfile?.name : null
+    }\n\n🕤 ${currentProfile.age ? currentProfile.age : null}р. \n\n📔 ${
+      currentProfile?.text ? currentProfile?.text : null
+    }`;
+  }else {
+    message = 'qwewqes'
+  }
+}else {
+  if (
+    myPoint !== null ||
+    userPoint !== null ||
+    myPoint !== undefined ||
+    userPoint !== undefined
+  ) {
+    message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
+      currentProfile?.name ? currentProfile?.name : null
+    }\n\n🕤 ${currentProfile.age ? currentProfile.age : null}р. 📍- ${
+      getDistanceString(myPoint, userPoint)
+        ? getDistanceString(myPoint, userPoint)
+        : " "
+    } \n\n📔 ${currentProfile?.text ? currentProfile?.text : null}`;
+  }
+  else if (
+    myPoint === null ||
+    userPoint === null ||
+    myPoint === undefined ||
+    userPoint === undefined
+  ) {
+    message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
+      currentProfile?.name ? currentProfile?.name : null
+    }\n\n🕤 ${currentProfile.age ? currentProfile.age : null}р. \n\n📔 ${
+      currentProfile?.text ? currentProfile?.text : null
+    }`;
+  }else {
+    message = '----'
+  }
+}
     if (currentProfile.type === "photo") {
       await ctx.replyWithPhoto(
         {
@@ -267,18 +315,16 @@ async function sendProfile(ctx) {
     // Інкрементуємо currentProfileIndex для відправки наступної анкети
     currentProfileIndex++;
   }
- 
-
 }
 
 bot.hears("❤️", async (ctx) => {
+  const prevUser = profiles[currentProfileIndex - 1];
+  const currentProfile = profiles[currentProfileIndex - 1];
   const likesCount = await pool.query(
     `select likes_per_day from users where tg_id = ${ctx.message.from.id}`
   );
-  console.log(likesCount.rows[0]);
-  const prevUser = profiles[currentProfileIndex - 1];
-  // Оновіть інформацію в базі даних для поточної анкети як лайк
-  const currentProfile = profiles[currentProfileIndex - 1];
+
+  const userLikeCount = await pool.query(`select * from users_like_count where user_id = ${currentProfile.user_id}`)
 
   if (!prevUser?.user_id || prevUser.user_id === null) {
     return await ctx.reply("Немає такого варіанту відповіді.");
@@ -287,10 +333,7 @@ bot.hears("❤️", async (ctx) => {
     INSERT INTO users_likes (user_id1, user_id2, like_1, like_2, created_at)
     VALUES (${ctx.message.from.id}, ${prevUser.user_id}, 1, 0, NOW());
      `);
-    ctx.telegram.sendMessage(
-      prevUser.user_id,
-      `Схоже вами хтось зацікавився 😎\n\n\nПодивіться хто вас лайкнув в меню:\n\n👤 Мій профіль -> 💌 Мої вподобайки`
-    );
+    sendMsgLove(ctx, prevUser.user_id);
   }
 
   const updateLikesQuery = `
@@ -304,6 +347,11 @@ WHERE tg_id = ${ctx.message.from.id}`;
     currentProfileIndex < profiles.length &&
     likesCount.rows[0].likes_per_day > 0
   ) {
+    if (userLikeCount.rows <= 0) {
+      const res = await pool.query(`insert into users_like_count (user_id,user_like,user_dislike) values(${currentProfile.user_id},1,1)`)
+    }else {
+      const update = await pool.query(`update users_like_count set user_like = user_like +1 where user_id = ${currentProfile.user_id}`)
+    }
     sendProfile(ctx, (like = 1));
   } else if (likesCount.rows[0].likes_per_day === 0) {
     ctx.reply("Лайки на сьогодні закінчились", {
@@ -315,7 +363,12 @@ WHERE tg_id = ${ctx.message.from.id}`;
             { text: "🔄 Заповнити анкету знову" },
           ],
           [{ text: "🐣 Зв'язок з розробником" }],
-          [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
+          [
+            {
+              text: "🌐 Відкрити сайт",
+              web_app: { url: "https://enjoyhub.space" },
+            },
+          ],
         ],
         resize_keyboard: true,
       },
@@ -330,7 +383,12 @@ WHERE tg_id = ${ctx.message.from.id}`;
             { text: "🔄 Заповнити анкету знову" },
           ],
           [{ text: "🐣 Зв'язок з розробником" }],
-          [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
+          [
+            {
+              text: "🌐 Відкрити сайт",
+              web_app: { url: "https://enjoyhub.space" },
+            },
+          ],
         ],
         resize_keyboard: true,
       },
@@ -340,12 +398,16 @@ WHERE tg_id = ${ctx.message.from.id}`;
 
 // bot.hears('Моя анкета')
 bot.hears("👎", async (ctx) => {
-  // Оновіть інформацію в базі даних для поточної анкети як дизлайк
   const currentProfile = profiles[currentProfileIndex - 1];
-  // await ctx.reply(`You disliked ${currentProfile.name}'s profile.`);
 
-  // Відправка наступної анкети
+const userLikeCount = await pool.query(`select * from users_like_count where user_id = ${currentProfile.user_id}`)
   if (currentProfileIndex < profiles.length) {
+    if (userLikeCount.rows <= 0) {
+      const res = await pool.query(`insert into users_like_count (user_id,user_dislike,user_like) values(${currentProfile.user_id},1,1)`)
+    }else {
+      const update = await pool.query(`update users_like_count set user_dislike = user_dislike +1 where user_id = ${currentProfile.user_id}`)
+    }
+
     sendProfile(ctx, (like = 0));
   } else {
     ctx.reply("Більше немає анкет для перегляду", {
@@ -357,7 +419,12 @@ bot.hears("👎", async (ctx) => {
             { text: "🔄 Заповнити анкету знову" },
           ],
           [{ text: "🐣 Зв'язок з розробником" }],
-          [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
+          [
+            {
+              text: "🌐 Відкрити сайт",
+              web_app: { url: "https://enjoyhub.space" },
+            },
+          ],
         ],
         resize_keyboard: true,
       },
@@ -401,82 +468,86 @@ bot.command("myprofile", async (ctx) => {
   WHERE a.user_id = ${ctx.message.from.id};
   `);
   const me = myAcc.rows[0];
-const banUser = await pool.query(`select * from users where tg_id = ${ctx.message.from.id}`)
-if (banUser.rows[0].is_ban === 1) {
-  await ctx.reply('Ви забанені',{reply_markup:{
-    keyboard:[
-      [{text:"Ви були забанені адміністратором"}]
-    ]
-  }})
-}else {
-  if (me) {
-    await ctx.reply(
-      `Ти ${me?.sex === "M" ? "приєднався" : "приєдналась"} до нас\n📅${moment(
-        me?.created_at
-      ).format("LLL")} год.`
-    );
-    if (me === undefined || me === null || me.type === null) {
+  const banUser = await pool.query(
+    `select * from users where tg_id = ${ctx.message.from.id}`
+  );
+  if (banUser.rows[0].is_ban === 1) {
+    await ctx.reply("Ви забанені", {
+      reply_markup: {
+        keyboard: [[{ text: "Ви були забанені адміністратором" }]],
+      },
+    });
+  } else {
+    if (me) {
       await ctx.reply(
-        "Упссс.....щось пішло не так....Спробуйте натиснути команду /start"
+        `Ти ${
+          me?.sex === "M" ? "приєднався" : "приєдналась"
+        } до нас\n📅${moment(me?.created_at).format("LLL")} год.`
       );
-    } else {
-      const message = `👤Ім'я: ${me?.name ? me?.name : "..."}\n\n🕐Вік: ${
-        me?.age ? me?.age : 50
-      }\n\n💁Інфа: ${me?.text ? me?.text : "Немає інфи"}`;
-  if (me.photo_url) {
-    if (me?.type === "photo") {
-      await ctx.replyWithPhoto(
-        {
-          url: me.photo_url,
-        },
-        {
-          caption: message,
-          reply_markup: {
-            keyboard: [
-              [{ text: "⚙ Налаштування" }],
-              [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-              [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
-              [{ text: "⬅️ Назад" }],
-            ],
-            resize_keyboard: true,
-          },
+      if (me === undefined || me === null || me.type === null) {
+        await ctx.reply(
+          "Упссс.....щось пішло не так....Спробуйте натиснути команду /start"
+        );
+      } else {
+        const message = `👤Ім'я: ${me?.name ? me?.name : "..."}\n\n🕐Вік: ${
+          me?.age ? me?.age : 50
+        }\n\n💁Інфа: ${me?.text ? me?.text : "Немає інфи"}`;
+        if (me.photo_url) {
+          if (me?.type === "photo") {
+            await ctx.replyWithPhoto(
+              {
+                url: me.photo_url,
+              },
+              {
+                caption: message,
+                reply_markup: {
+                  keyboard: [
+                    [{ text: "⚙ Налаштування" }],
+                    [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
+                    [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
+                    [{ text: "⬅️ Назад" }],
+                  ],
+                  resize_keyboard: true,
+                },
+              }
+            );
+          } else {
+            await ctx.replyWithVideo(
+              {
+                url: me?.photo_url,
+              },
+              {
+                caption: message,
+                reply_markup: {
+                  keyboard: [
+                    [{ text: "⚙ Налаштування" }],
+                    [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
+                    [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
+                    [{ text: "⬅️ Назад" }],
+                  ],
+                  resize_keyboard: true,
+                },
+              }
+            );
+          }
+        } else {
+          return await ctx.reply("Заповніть анкету знову", {
+            reply_markup: {
+              keyboard: [[{ text: "🔄 Заповнити анкету знову" }]],
+              resize_keyboard: true,
+            },
+          });
         }
-      );
+      }
     } else {
-      await ctx.replyWithVideo(
-        {
-          url: me?.photo_url,
+      return await ctx.reply("Заповніть анкету знову", {
+        reply_markup: {
+          keyboard: [[{ text: "🔄 Заповнити анкету знову" }]],
+          resize_keyboard: true,
         },
-        {
-          caption: message,
-          reply_markup: {
-            keyboard: [
-              [{ text: "⚙ Налаштування" }],
-              [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-              [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
-              [{ text: "⬅️ Назад" }],
-            ],
-            resize_keyboard: true,
-          },
-        }
-      );
+      });
     }
-  }else {
-    return await ctx.reply('Заповніть анкету знову',{reply_markup:{
-      keyboard:[
-        [{text:"🔄 Заповнити анкету знову"}]
-      ],resize_keyboard:true
-    }})
   }
-    }
-  }else {
-    return await ctx.reply('Заповніть анкету знову',{reply_markup:{
-      keyboard:[
-        [{text:"🔄 Заповнити анкету знову"}]
-      ],resize_keyboard:true
-    }})
-  }
-}
 });
 
 bot.hears("⬅️ Назад", async (ctx) => {
@@ -489,7 +560,12 @@ bot.hears("⬅️ Назад", async (ctx) => {
           { text: "🔄 Заповнити анкету знову" },
         ],
         [{ text: "🐣 Зв'язок з розробником" }],
-        [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
+        [
+          {
+            text: "🌐 Відкрити сайт",
+            web_app: { url: "https://enjoyhub.space" },
+          },
+        ],
       ],
       resize_keyboard: true,
     },
@@ -563,74 +639,73 @@ bot.hears("👤 Мій профіль", async (ctx) => {
   const user = ctx.message.from;
   await createUser(user);
   const me = myAcc.rows[0];
-  const banUser = await pool.query(`select * from users where tg_id = ${ctx.message.from.id}`)
+  const banUser = await pool.query(
+    `select * from users where tg_id = ${ctx.message.from.id}`
+  );
   if (banUser.rows[0].is_ban === 1) {
-    await ctx.reply('Ви забанені',{reply_markup:{
-      keyboard:[
-        [{text:"Ви були забанені адміністратором"}]
-      ]
-    }})
-
-  }else {
+    await ctx.reply("Ви забанені", {
+      reply_markup: {
+        keyboard: [[{ text: "Ви були забанені адміністратором" }]],
+      },
+    });
+  } else {
     if (me) {
       const message = `👤Ім'я: ${me?.name}\n\n🕐Вік: ${me?.age}\n\n💁Інфа: ${me?.text}`;
-  if (me.photo_url) {
-    if (me?.type === "photo") {
-      await ctx.replyWithPhoto(
-        {
-          url: me?.photo_url,
-        },
-        {
-          caption: message,
+      if (me.photo_url) {
+        if (me?.type === "photo") {
+          await ctx.replyWithPhoto(
+            {
+              url: me?.photo_url,
+            },
+            {
+              caption: message,
+              reply_markup: {
+                keyboard: [
+                  [{ text: "⚙ Налаштування" }],
+                  [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
+                  [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
+                  [{ text: "⬅️ Назад" }],
+                ],
+                resize_keyboard: true,
+              },
+            }
+          );
+        } else {
+          await ctx.replyWithVideo(
+            {
+              url: me?.photo_url,
+            },
+            {
+              caption: message,
+              reply_markup: {
+                keyboard: [
+                  [{ text: "⚙ Налаштування" }],
+                  [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
+                  [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
+                  [{ text: "⬅️ Назад" }],
+                ],
+                resize_keyboard: true,
+              },
+            }
+          );
+        }
+      } else {
+        return await ctx.reply("Заповніть анкету знову", {
           reply_markup: {
-            keyboard: [
-              [{ text: "⚙ Налаштування" }],
-              [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-              [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
-              [{ text: "⬅️ Назад" }],
-            ],
+            keyboard: [[{ text: "🔄 Заповнити анкету знову" }]],
             resize_keyboard: true,
           },
-        }
-      );
+        });
+      }
     } else {
-      await ctx.replyWithVideo(
-        {
-          url: me?.photo_url,
+      return await ctx.reply("Заповніть анкету знову", {
+        reply_markup: {
+          keyboard: [[{ text: "🔄 Заповнити анкету знову" }]],
+          resize_keyboard: true,
         },
-        {
-          caption: message,
-          reply_markup: {
-            keyboard: [
-              [{ text: "⚙ Налаштування" }],
-              [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-              [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
-              [{ text: "⬅️ Назад" }],
-            ],
-            resize_keyboard: true,
-          },
-        }
-      );
-    }
-  }else {
-    return await ctx.reply('Заповніть анкету знову',{reply_markup:{
-      keyboard:[
-        [{text:"🔄 Заповнити анкету знову"}]
-      ],resize_keyboard:true
-    }})
-  }
-  
-    }else {
-      return await ctx.reply('Заповніть анкету знову',{reply_markup:{
-        keyboard:[
-          [{text:"🔄 Заповнити анкету знову"}]
-        ],resize_keyboard:true
-      }})
+      });
     }
   }
-
- 
- 
 });
 bot.hears(`🐣 Зв'язок з розробником`, async (ctx) => {
   ctx.reply("@web_developer_Ukraine");
@@ -645,7 +720,12 @@ bot.hears(`✔️`, async (ctx) => {
           { text: "🔄 Заповнити анкету знову" },
         ],
         [{ text: "🐣 Зв'язок з розробником" }],
-        [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
+        [
+          {
+            text: "🌐 Відкрити сайт",
+            web_app: { url: "https://enjoyhub.space" },
+          },
+        ],
       ],
       resize_keyboard: true,
     },
@@ -682,29 +762,24 @@ bot.hears(`🤖 Зв'язок з розробником`, (ctx) => {
 // bot.action("more functions", (ctx) => {
 //   ctx.editMessageText("Розробник --- @web_developer_Ukraine");
 // });
-const tarifs = []
+const tarifs = [];
 bot.action("premium_tarifs", async (ctx) => {
   // ctx.editMessageText("🤖 Розробник: @web_developer_Ukraine");
   const result = await pool.query(`select * from premium_plans`);
-  tarifs.push(...result.rows)
-if (tarifs.length > 0) {
+  tarifs.push(...result.rows);
+  if (tarifs.length > 0) {
+    const keyboard = {
+      inline_keyboard: generetaTarifKeyboard(tarifs),
+    };
 
- 
-
-  const keyboard = {
-    inline_keyboard:generetaTarifKeyboard(tarifs)
-   }
-  
-  await ctx.editMessageText(
-    `Доступні тарифні плани:
+    await ctx.editMessageText(
+      `Доступні тарифні плани:
 1.Тариф Light - 50 грн\n2.Тариф Medium - 250 грн\n3.Тариф Йобтвою мать - 400 грн\n4.Тариф "Ну його на...уй" - 700 грн
-`, {reply_markup:keyboard}
-
-  );
-
-}
+`,
+      { reply_markup: keyboard }
+    );
+  }
 });
-
 
 bot.action("tarif_1", async (ctx) => {
   await ctx.reply("Ви обрали тариф Light", {
@@ -941,14 +1016,13 @@ async function sendLikeProfile(ctx) {
         ? getDistanceString(myPoint, userPoint)
         : " "
     } \n\n📔 ${currentProfile?.text ? currentProfile?.text : null}`;
-  } 
-else {
+  } else {
     message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
       currentProfile?.name ? currentProfile?.name : null
     }\n\n🕤 ${currentProfile.age ? currentProfile.age : null}р. \n\n📔 ${
       currentProfile?.text ? currentProfile?.text : null
     }`;
-}
+  }
 
   if (currentProfile.type === "photo") {
     await ctx.replyWithPhoto(
@@ -1033,8 +1107,12 @@ where user_id2 = ${ctx.message.from.id} and is_show = 0`);
             { text: "🔄 Заповнити анкету знову" },
           ],
           [{ text: "🐣 Зв'язок з розробником" }],
-          [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
-   
+          [
+            {
+              text: "🌐 Відкрити сайт",
+              web_app: { url: "https://enjoyhub.space" },
+            },
+          ],
         ],
         resize_keyboard: true,
       },
@@ -1063,7 +1141,12 @@ where user_id2 = ${ctx.message.from.id} and is_show = 0`);
             { text: "🔄 Заповнити анкету знову" },
           ],
           [{ text: "🐣 Зв'язок з розробником" }],
-          [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
+          [
+            {
+              text: "🌐 Відкрити сайт",
+              web_app: { url: "https://enjoyhub.space" },
+            },
+          ],
         ],
         resize_keyboard: true,
       },
@@ -1110,6 +1193,23 @@ WHERE ARRAY_LENGTH(
     );
   }
 });
+
+
+bot.hears('lk', async ctx =>{
+// Отримайте поточну дату
+const currentDate = moment();
+
+// Додайте 1 місяць до поточної дати
+const newDate = currentDate.clone().add(1, 'months');
+
+// Форматуйте нову дату в рядок для використання в запиті SQL
+const formattedDate = newDate.format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+const getData = await pool.query(`select premium_end from users where tg_id = 282039969`)
+console.log(moment(getData.rows[0].premium_end).format('l'));
+  
+//  const insertDatePremium = await pool.query(`update users set premium_end = '${formattedDate}' where tg_id = ${282039969} and premium_end is null`)
+
+})
 
 // ЗАПЛАНОВАНІ ПОДІЇ
 updateLikesForEveryUser(bot);
