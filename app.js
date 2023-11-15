@@ -33,7 +33,8 @@ const buildTree = require("./helpers/referalsTree/referals");
 const changeNumberScene = require("./scenes/changeNumberScene");
 const public_key = "sandbox_i31110430124";
 const private_key = "sandbox_HJjraXMdCLnz3ApcEJOYCjmSgRjhsjtuvFSVmVci";
-const statisticRouter = require('./routes/statistic')
+const statisticRouter = require('./routes/statistic');
+const { generetaTarifKeyboard } = require("./helpers/tarif/generateTarifKeyboard");
 var liqpay = new LiqPay(public_key, private_key);
 
 // stage.register(registrationScene);
@@ -100,38 +101,48 @@ bot.start(async (ctx) => {
  
   try {
     const user = ctx.message.from;
-    await createUser(user);
+    // await createUser(user);
+const checkUserBan = await pool.query(`select * from users where tg_id = ${ctx.message.from.id}`)
 
     const userInfo = await pool.query(
       `select * from users_info where user_id = ${ctx.message.from.id}`
     );
-
-    if (userInfo?.rows <= 0) {
-      await ctx.replyWithHTML(`Вітаю!`, {
-        reply_markup: {
-          keyboard: [
-            [{ text: "Створити анкету 📒" }],
-            [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
-          ],
-          resize_keyboard: true,
-        },
-      });
-    } else {
-      await ctx.replyWithHTML(`Вітаю !`, {
-        reply_markup: {
-          keyboard: [
-            [{ text: "👤 Мій профіль" }, { text: "👀 Дивитись анкети" }],
-            [
-              { text: "💰 Реферальне посилання" },
-              { text: "🔄 Заповнити анкету знову" },
+console.log(checkUserBan.rows[0].is_ban );
+   if(checkUserBan.rows[0]?.is_ban === 1){
+      await ctx.reply('Ви забанені',{reply_markup:{
+        keyboard:[
+          [{text:"Ви були забанені адміністратором"}]
+        ]
+      }})
+    }else {
+      if (userInfo?.rows <= 0) {
+        await ctx.replyWithHTML(`Вітаю!`, {
+          reply_markup: {
+            keyboard: [
+              [{ text: "Створити анкету 📒" }],
+              [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
             ],
-            [{ text: "🐣 Зв'язок з розробником" }],
-            [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
-          ],
-          resize_keyboard: true,
-        },
-      });
+            resize_keyboard: true,
+          },
+        });
+      } else  {
+        await ctx.replyWithHTML(`Вітаю !`, {
+          reply_markup: {
+            keyboard: [
+              [{ text: "👤 Мій профіль" }, { text: "👀 Дивитись анкети" }],
+              [
+                { text: "💰 Реферальне посилання" },
+                { text: "🔄 Заповнити анкету знову" },
+              ],
+              [{ text: "🐣 Зв'язок з розробником" }],
+              [{ text: "🌐 Відкрити сайт",web_app: { url: "https://enjoyhub.space" }  }],
+            ],
+            resize_keyboard: true,
+          },
+        });
+      }
     }
+   
     const userId = ctx.from.id;
     const referrerId = ctx.message.text.split(" ")[1];
 
@@ -479,73 +490,81 @@ bot.command("myprofile", async (ctx) => {
   WHERE a.user_id = ${ctx.message.from.id};
   `);
   const me = myAcc.rows[0];
-
-if (me) {
-  await ctx.reply(
-    `Ти ${me?.sex === "M" ? "приєднався" : "приєдналась"} до нас\n📅${moment(
-      me?.created_at
-    ).format("LLL")} год.`
-  );
-  if (me === undefined || me === null || me.type === null) {
+const banUser = await pool.query(`select * from users where tg_id = ${ctx.message.from.id}`)
+if (banUser.rows[0].is_ban === 1) {
+  await ctx.reply('Ви забанені',{reply_markup:{
+    keyboard:[
+      [{text:"Ви були забанені адміністратором"}]
+    ]
+  }})
+}else {
+  if (me) {
     await ctx.reply(
-      "Упссс.....щось пішло не так....Спробуйте натиснути команду /start"
+      `Ти ${me?.sex === "M" ? "приєднався" : "приєдналась"} до нас\n📅${moment(
+        me?.created_at
+      ).format("LLL")} год.`
     );
-  } else {
-    const message = `👤Ім'я: ${me?.name ? me?.name : "..."}\n\n🕐Вік: ${
-      me?.age ? me?.age : 50
-    }\n\n💁Інфа: ${me?.text ? me?.text : "Немає інфи"}`;
-if (me.photo_url) {
-  if (me?.type === "photo") {
-    await ctx.replyWithPhoto(
-      {
-        url: me.photo_url,
-      },
-      {
-        caption: message,
-        reply_markup: {
-          keyboard: [
-            [{ text: "⚙ Налаштування" }],
-            [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-            [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
-            [{ text: "⬅️ Назад" }],
-          ],
-          resize_keyboard: true,
+    if (me === undefined || me === null || me.type === null) {
+      await ctx.reply(
+        "Упссс.....щось пішло не так....Спробуйте натиснути команду /start"
+      );
+    } else {
+      const message = `👤Ім'я: ${me?.name ? me?.name : "..."}\n\n🕐Вік: ${
+        me?.age ? me?.age : 50
+      }\n\n💁Інфа: ${me?.text ? me?.text : "Немає інфи"}`;
+  if (me.photo_url) {
+    if (me?.type === "photo") {
+      await ctx.replyWithPhoto(
+        {
+          url: me.photo_url,
         },
-      }
-    );
-  } else {
-    await ctx.replyWithVideo(
-      {
-        url: me?.photo_url,
-      },
-      {
-        caption: message,
-        reply_markup: {
-          keyboard: [
-            [{ text: "⚙ Налаштування" }],
-            [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-            [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
-            [{ text: "⬅️ Назад" }],
-          ],
-          resize_keyboard: true,
+        {
+          caption: message,
+          reply_markup: {
+            keyboard: [
+              [{ text: "⚙ Налаштування" }],
+              [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
+              [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
+              [{ text: "⬅️ Назад" }],
+            ],
+            resize_keyboard: true,
+          },
+        }
+      );
+    } else {
+      await ctx.replyWithVideo(
+        {
+          url: me?.photo_url,
         },
-      }
-    );
+        {
+          caption: message,
+          reply_markup: {
+            keyboard: [
+              [{ text: "⚙ Налаштування" }],
+              [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
+              [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
+              [{ text: "⬅️ Назад" }],
+            ],
+            resize_keyboard: true,
+          },
+        }
+      );
+    }
+  }else {
+    return await ctx.reply('Заповніть анкету знову',{reply_markup:{
+      keyboard:[
+        [{text:"🔄 Заповнити анкету знову"}]
+      ],resize_keyboard:true
+    }})
   }
-}else {
-  return await ctx.reply('Заповніть анкету знову',{reply_markup:{
-    keyboard:[
-      [{text:"🔄 Заповнити анкету знову"}]
-    ],resize_keyboard:true
-  }})
-}
+    }
+  }else {
+    return await ctx.reply('Заповніть анкету знову',{reply_markup:{
+      keyboard:[
+        [{text:"🔄 Заповнити анкету знову"}]
+      ],resize_keyboard:true
+    }})
   }
-}else {
-  return await ctx.reply('Заповніть анкету знову',{reply_markup:{
-    keyboard:[
-      [{text:"🔄 Заповнити анкету знову"}]
-    ],resize_keyboard:true
-  }})
 }
 });
 
@@ -633,55 +652,55 @@ bot.hears("👤 Мій профіль", async (ctx) => {
   const user = ctx.message.from;
   await createUser(user);
   const me = myAcc.rows[0];
+  const banUser = await pool.query(`select * from users where tg_id = ${ctx.message.from.id}`)
+  if (banUser.rows[0].is_ban === 1) {
+    await ctx.reply('Ви забанені',{reply_markup:{
+      keyboard:[
+        [{text:"Ви були забанені адміністратором"}]
+      ]
+    }})
 
-  if (me) {
-    const message = `👤Ім'я: ${me?.name}\n\n🕐Вік: ${me?.age}\n\n💁Інфа: ${me?.text}`;
-if (me.photo_url) {
-  if (me?.type === "photo") {
-    await ctx.replyWithPhoto(
-      {
-        url: me?.photo_url,
-      },
-      {
-        caption: message,
-        reply_markup: {
-          keyboard: [
-            [{ text: "⚙ Налаштування" }],
-            [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-            [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
-            [{ text: "⬅️ Назад" }],
-          ],
-          resize_keyboard: true,
+  }else {
+    if (me) {
+      const message = `👤Ім'я: ${me?.name}\n\n🕐Вік: ${me?.age}\n\n💁Інфа: ${me?.text}`;
+  if (me.photo_url) {
+    if (me?.type === "photo") {
+      await ctx.replyWithPhoto(
+        {
+          url: me?.photo_url,
         },
-      }
-    );
-  } else {
-    await ctx.replyWithVideo(
-      {
-        url: me?.photo_url,
-      },
-      {
-        caption: message,
-        reply_markup: {
-          keyboard: [
-            [{ text: "⚙ Налаштування" }],
-            [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-            [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
-            [{ text: "⬅️ Назад" }],
-          ],
-          resize_keyboard: true,
+        {
+          caption: message,
+          reply_markup: {
+            keyboard: [
+              [{ text: "⚙ Налаштування" }],
+              [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
+              [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
+              [{ text: "⬅️ Назад" }],
+            ],
+            resize_keyboard: true,
+          },
+        }
+      );
+    } else {
+      await ctx.replyWithVideo(
+        {
+          url: me?.photo_url,
         },
-      }
-    );
-  }
-}else {
-  return await ctx.reply('Заповніть анкету знову',{reply_markup:{
-    keyboard:[
-      [{text:"🔄 Заповнити анкету знову"}]
-    ],resize_keyboard:true
-  }})
-}
-
+        {
+          caption: message,
+          reply_markup: {
+            keyboard: [
+              [{ text: "⚙ Налаштування" }],
+              [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
+              [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
+              [{ text: "⬅️ Назад" }],
+            ],
+            resize_keyboard: true,
+          },
+        }
+      );
+    }
   }else {
     return await ctx.reply('Заповніть анкету знову',{reply_markup:{
       keyboard:[
@@ -689,6 +708,17 @@ if (me.photo_url) {
       ],resize_keyboard:true
     }})
   }
+  
+    }else {
+      return await ctx.reply('Заповніть анкету знову',{reply_markup:{
+        keyboard:[
+          [{text:"🔄 Заповнити анкету знову"}]
+        ],resize_keyboard:true
+      }})
+    }
+  }
+
+ 
  
 });
 bot.hears(`🐣 Зв'язок з розробником`, async (ctx) => {
@@ -741,22 +771,32 @@ bot.hears(`🤖 Зв'язок з розробником`, (ctx) => {
 // bot.action("more functions", (ctx) => {
 //   ctx.editMessageText("Розробник --- @web_developer_Ukraine");
 // });
+const tarifs = []
 bot.action("premium_tarifs", async (ctx) => {
   // ctx.editMessageText("🤖 Розробник: @web_developer_Ukraine");
+  const result = await pool.query(`select * from premium_plans`);
+  tarifs.push(...result.rows)
+if (tarifs.length > 0) {
+
+ 
+
+  const keyboard = {
+    inline_keyboard:generetaTarifKeyboard(tarifs)
+   }
+  
   await ctx.editMessageText(
     `Доступні тарифні плани:
 1.Тариф Light - 50 грн\n2.Тариф Medium - 250 грн\n3.Тариф Йобтвою мать - 400 грн\n4.Тариф "Ну його на...уй" - 700 грн
-`,
-    Markup.inlineKeyboard([
-      Markup.button.callback("1", "first_tarif"),
-      Markup.button.callback("2", "second_tarif"),
-      Markup.button.callback(`3`, "third_taif"),
-      Markup.button.callback(`4`, "omg_tarif"),
-    ]).resize()
+`, {reply_markup:keyboard}
+
   );
+
+}
 });
-bot.action("first_tarif", async (ctx) => {
-  await ctx.reply("eqwlewqllewq", {
+
+
+bot.action("tarif_1", async (ctx) => {
+  await ctx.reply("Ви обрали тариф Light", {
     reply_markup: {
       keyboard: [
         [{ text: "Оплатити Тариф Light" }],
@@ -766,8 +806,8 @@ bot.action("first_tarif", async (ctx) => {
     },
   });
 });
-bot.action("second_tarif", async (ctx) => {
-  await ctx.reply("eqwlewqllewq", {
+bot.action("tarif_2", async (ctx) => {
+  await ctx.reply("Ви обрали тариф Medium", {
     reply_markup: {
       keyboard: [
         [{ text: "Оплатити Тариф Medium" }],
@@ -777,8 +817,8 @@ bot.action("second_tarif", async (ctx) => {
     },
   });
 });
-bot.action("third_taif", async (ctx) => {
-  await ctx.reply("eqwlewqllewq", {
+bot.action("tarif_3", async (ctx) => {
+  await ctx.reply("Ви обрали тариф Йобтвою мать", {
     reply_markup: {
       keyboard: [
         [{ text: "Оплатити Тариф Йобтвою мать" }],
@@ -788,8 +828,8 @@ bot.action("third_taif", async (ctx) => {
     },
   });
 });
-bot.action("omg_tarif", async (ctx) => {
-  await ctx.reply("eqwlewqllewq", {
+bot.action("tarif_4", async (ctx) => {
+  await ctx.reply("Ви обрали тариф Ну його на...уй", {
     reply_markup: {
       keyboard: [
         [{ text: `Оплатити Тариф "Ну його на...уй"` }],
