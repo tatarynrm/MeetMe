@@ -17,6 +17,13 @@ const geolib = require("geolib");
 const iconv = require("iconv-lite");
 const { createUser } = require("./controllers/users");
 const moment = require("moment");
+const https = require("https");
+const { checkPremium } = require("./helpers/premium/checkPremium");
+const {
+  PREMIUM_MESSAGE,
+  REFERAL_SYSTEM_MESSAGE,
+} = require("./constants/userGreetings");
+const myProfile = require("./bot_functions/my_profile");
 require("moment/locale/uk");
 const registrationScene = require("./scenes/registerScene");
 const likesScene = require("./scenes/likesScene");
@@ -39,6 +46,10 @@ const {
 } = require("./helpers/tarif/generateTarifKeyboard");
 const { botStart } = require("./bot_commands/bot_start");
 const { sendMsgLove } = require("./bot_functions/sendMsgToUserThatLike");
+const { goBack } = require("./bot_commands/go_back");
+const mySettings = require("./bot_commands/mySettings");
+const myReferals = require("./bot_commands/myReferals");
+const myPremiumCommand = require("./bot_commands/premium_info_about");
 var liqpay = new LiqPay(public_key, private_key);
 
 // stage.register(registrationScene);
@@ -162,7 +173,6 @@ bot.hears("👀 Дивитись анкети", async (ctx) => {
     LEFT JOIN users_like_count AS d ON a.user_id = d.user_id
     WHERE a.user_id != ${ctx.message.from.id} AND a.sex = 'M'
   `);
-
       } else if (paramsSex === "W") {
         profiles1 = await pool.query(`
         SELECT a.*, b.photo_url, b.type, c.*,d.user_like as us_like,d.user_dislike as ds_like
@@ -200,7 +210,9 @@ bot.hears("👀 Дивитись анкети", async (ctx) => {
   }
 });
 async function sendProfile(ctx) {
-  const myPremiumAcc = await pool.query(`select is_premium from users where tg_id = ${ctx.message.from.id}`);
+  const myPremiumAcc = await pool.query(
+    `select is_premium from users where tg_id = ${ctx.message.from.id}`
+  );
   const premium = myPremiumAcc.rows[0].is_premium;
   console.log(premium);
   const myLocation = await pool.query(
@@ -226,65 +238,67 @@ async function sendProfile(ctx) {
       longitude: currentProfile.long,
     };
     let message = "";
-if (premium) {
-  if (
-    myPoint !== null ||
-    userPoint !== null ||
-    myPoint !== undefined ||
-    userPoint !== undefined
-  ) {
-    message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
-      currentProfile?.name ? currentProfile?.name : null
-    }\n\n🕤 ${currentProfile.age ? currentProfile.age : null}р. 📍- ${
-      getDistanceString(myPoint, userPoint)
-        ? getDistanceString(myPoint, userPoint)
-        : " "
-    } \n\n📔 ${currentProfile?.text ? currentProfile?.text : null}\n\nВаш PREMIUM доступ 👑 \n❤️ ${currentProfile.us_like ? currentProfile.us_like : "-" }     👎 ${currentProfile.ds_like  ? currentProfile.ds_like : "-"}`;
-  }
-  else if (
-    myPoint === null ||
-    userPoint === null ||
-    myPoint === undefined ||
-    userPoint === undefined
-  ) {
-    message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
-      currentProfile?.name ? currentProfile?.name : null
-    }\n\n🕤 ${currentProfile.age ? currentProfile.age : null}р. \n\n📔 ${
-      currentProfile?.text ? currentProfile?.text : null
-    }`;
-  }else {
-    message = 'qwewqes'
-  }
-}else {
-  if (
-    myPoint !== null ||
-    userPoint !== null ||
-    myPoint !== undefined ||
-    userPoint !== undefined
-  ) {
-    message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
-      currentProfile?.name ? currentProfile?.name : null
-    }\n\n🕤 ${currentProfile.age ? currentProfile.age : null}р. 📍- ${
-      getDistanceString(myPoint, userPoint)
-        ? getDistanceString(myPoint, userPoint)
-        : " "
-    } \n\n📔 ${currentProfile?.text ? currentProfile?.text : null}`;
-  }
-  else if (
-    myPoint === null ||
-    userPoint === null ||
-    myPoint === undefined ||
-    userPoint === undefined
-  ) {
-    message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
-      currentProfile?.name ? currentProfile?.name : null
-    }\n\n🕤 ${currentProfile.age ? currentProfile.age : null}р. \n\n📔 ${
-      currentProfile?.text ? currentProfile?.text : null
-    }`;
-  }else {
-    message = '----'
-  }
-}
+    if (premium) {
+      if (
+        myPoint !== null ||
+        userPoint !== null ||
+        myPoint !== undefined ||
+        userPoint !== undefined
+      ) {
+        message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
+          currentProfile?.name ? currentProfile?.name : null
+        }\n\n🕤 ${currentProfile.age ? currentProfile.age : null}р. 📍- ${
+          getDistanceString(myPoint, userPoint)
+            ? getDistanceString(myPoint, userPoint)
+            : " "
+        } \n\n📔 ${
+          currentProfile?.text ? currentProfile?.text : null
+        }\n\nВаш PREMIUM доступ 👑 \n❤️ ${
+          currentProfile.us_like ? currentProfile.us_like : "-"
+        }     👎 ${currentProfile.ds_like ? currentProfile.ds_like : "-"}`;
+      } else if (
+        myPoint === null ||
+        userPoint === null ||
+        myPoint === undefined ||
+        userPoint === undefined
+      ) {
+        message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
+          currentProfile?.name ? currentProfile?.name : null
+        }\n\n🕤 ${currentProfile.age ? currentProfile.age : null}р. \n\n📔 ${
+          currentProfile?.text ? currentProfile?.text : null
+        }`;
+      } else {
+        message = "qwewqes";
+      }
+    } else {
+      if (
+        myPoint !== null ||
+        userPoint !== null ||
+        myPoint !== undefined ||
+        userPoint !== undefined
+      ) {
+        message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
+          currentProfile?.name ? currentProfile?.name : null
+        }\n\n🕤 ${currentProfile.age ? currentProfile.age : null}р. 📍- ${
+          getDistanceString(myPoint, userPoint)
+            ? getDistanceString(myPoint, userPoint)
+            : " "
+        } \n\n📔 ${currentProfile?.text ? currentProfile?.text : null}`;
+      } else if (
+        myPoint === null ||
+        userPoint === null ||
+        myPoint === undefined ||
+        userPoint === undefined
+      ) {
+        message = `${currentProfile.sex === "M" ? "👦" : "👧"} ${
+          currentProfile?.name ? currentProfile?.name : null
+        }\n\n🕤 ${currentProfile.age ? currentProfile.age : null}р. \n\n📔 ${
+          currentProfile?.text ? currentProfile?.text : null
+        }`;
+      } else {
+        message = "----";
+      }
+    }
     if (currentProfile.type === "photo") {
       await ctx.replyWithPhoto(
         {
@@ -324,7 +338,9 @@ bot.hears("❤️", async (ctx) => {
     `select likes_per_day from users where tg_id = ${ctx.message.from.id}`
   );
 
-  const userLikeCount = await pool.query(`select * from users_like_count where user_id = ${currentProfile.user_id}`)
+  const userLikeCount = await pool.query(
+    `select * from users_like_count where user_id = ${currentProfile.user_id}`
+  );
 
   if (!prevUser?.user_id || prevUser.user_id === null) {
     return await ctx.reply("Немає такого варіанту відповіді.");
@@ -348,9 +364,13 @@ WHERE tg_id = ${ctx.message.from.id}`;
     likesCount.rows[0].likes_per_day > 0
   ) {
     if (userLikeCount.rows <= 0) {
-      const res = await pool.query(`insert into users_like_count (user_id,user_like,user_dislike) values(${currentProfile.user_id},1,1)`)
-    }else {
-      const update = await pool.query(`update users_like_count set user_like = user_like +1 where user_id = ${currentProfile.user_id}`)
+      const res = await pool.query(
+        `insert into users_like_count (user_id,user_like,user_dislike) values(${currentProfile.user_id},1,1)`
+      );
+    } else {
+      const update = await pool.query(
+        `update users_like_count set user_like = user_like +1 where user_id = ${currentProfile.user_id}`
+      );
     }
     sendProfile(ctx, (like = 1));
   } else if (likesCount.rows[0].likes_per_day === 0) {
@@ -396,16 +416,28 @@ WHERE tg_id = ${ctx.message.from.id}`;
   }
 });
 
+bot.hears("sticker", async (ctx) => {
+  await bot.telegram.sendSticker(
+    ctx.message.from.id,
+    "AAMCBQADGQEAAi7OZVXzV7dMyegQsl4BCnC8Go07JpkAAjIGAAJNULFWPlV-n6V4HncBAAdtAAMzBA"
+  );
+});
 // bot.hears('Моя анкета')
 bot.hears("👎", async (ctx) => {
   const currentProfile = profiles[currentProfileIndex - 1];
 
-const userLikeCount = await pool.query(`select * from users_like_count where user_id = ${currentProfile.user_id}`)
+  const userLikeCount = await pool.query(
+    `select * from users_like_count where user_id = ${currentProfile.user_id}`
+  );
   if (currentProfileIndex < profiles.length) {
     if (userLikeCount.rows <= 0) {
-      const res = await pool.query(`insert into users_like_count (user_id,user_dislike,user_like) values(${currentProfile.user_id},1,1)`)
-    }else {
-      const update = await pool.query(`update users_like_count set user_dislike = user_dislike +1 where user_id = ${currentProfile.user_id}`)
+      const res = await pool.query(
+        `insert into users_like_count (user_id,user_dislike,user_like) values(${currentProfile.user_id},1,1)`
+      );
+    } else {
+      const update = await pool.query(
+        `update users_like_count set user_dislike = user_dislike +1 where user_id = ${currentProfile.user_id}`
+      );
     }
 
     sendProfile(ctx, (like = 0));
@@ -437,275 +469,55 @@ bot.hears("💰 Реферальне посилання", async (ctx) => {
   await ctx.replyWithPhoto(
     { source: photoPath },
     {
-      caption: `\n<b>Ваше унікальне реферальне посилання:</b>\n\n<i>(Натисніть щоб скопіювати)</i>\n<code>https://t.me/EnjoyHubBot?start=${ctx.message.from.id}</code>\n\n
-      💰 Реферальна Програма
-
-Покликайте своїх друзів та отримайте винагороду за кожного нового учасника, які приєднається до нашої спільноти!
-
-🌐 Запрошуйте Друзів: Поділіться своїм унікальним реферальним посиланням з друзями через Телеграм.
-
-🎁 Отримуйте Винагороду: За кожного друга, який приєднується за вашим посиланням, ви отримуєте особливий бонус.
-
-🚀 Збільшуйте Статус: Завдяки реферальним бонусам, ви розблокуєте високий рівень статусу та ексклюзивні переваги.
-
-📈 Відстежуйте Статистику: Спостерігайте за кількістю запрошених друзів та ваших досягнень у панелі статистики.
-
-💡 Ексклюзивні Бонуси: За досягнення певних мильників, отримуйте додаткові бонуси та подарунки.
-      \n\n`,
+      caption: REFERAL_SYSTEM_MESSAGE(ctx),
       parse_mode: "HTML",
     }
-    // `Ваше реферальне посилання:\nhttps://t.me/noris_chat_bot?start=${ctx.message.from.id}`
   );
 });
 
 bot.command("myprofile", async (ctx) => {
-  const user = ctx.message.from;
-  await createUser(user);
-  const myAcc = await pool.query(`
-  SELECT a.*, b.photo_url,b.type
-  FROM users_info AS a
-  LEFT JOIN users_photos AS b ON a.user_id = b.user_id
-  WHERE a.user_id = ${ctx.message.from.id};
-  `);
-  const me = myAcc.rows[0];
-  const banUser = await pool.query(
-    `select * from users where tg_id = ${ctx.message.from.id}`
-  );
-  if (banUser.rows[0].is_ban === 1) {
-    await ctx.reply("Ви забанені", {
-      reply_markup: {
-        keyboard: [[{ text: "Ви були забанені адміністратором" }]],
-      },
-    });
-  } else {
-    if (me) {
-      await ctx.reply(
-        `Ти ${
-          me?.sex === "M" ? "приєднався" : "приєдналась"
-        } до нас\n📅${moment(me?.created_at).format("LLL")} год.`
-      );
-      if (me === undefined || me === null || me.type === null) {
-        await ctx.reply(
-          "Упссс.....щось пішло не так....Спробуйте натиснути команду /start"
-        );
-      } else {
-        const message = `👤Ім'я: ${me?.name ? me?.name : "..."}\n\n🕐Вік: ${
-          me?.age ? me?.age : 50
-        }\n\n💁Інфа: ${me?.text ? me?.text : "Немає інфи"}`;
-        if (me.photo_url) {
-          if (me?.type === "photo") {
-            await ctx.replyWithPhoto(
-              {
-                url: me.photo_url,
-              },
-              {
-                caption: message,
-                reply_markup: {
-                  keyboard: [
-                    [{ text: "⚙ Налаштування" }],
-                    [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-                    [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
-                    [{ text: "⬅️ Назад" }],
-                  ],
-                  resize_keyboard: true,
-                },
-              }
-            );
-          } else {
-            await ctx.replyWithVideo(
-              {
-                url: me?.photo_url,
-              },
-              {
-                caption: message,
-                reply_markup: {
-                  keyboard: [
-                    [{ text: "⚙ Налаштування" }],
-                    [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-                    [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
-                    [{ text: "⬅️ Назад" }],
-                  ],
-                  resize_keyboard: true,
-                },
-              }
-            );
-          }
-        } else {
-          return await ctx.reply("Заповніть анкету знову", {
-            reply_markup: {
-              keyboard: [[{ text: "🔄 Заповнити анкету знову" }]],
-              resize_keyboard: true,
-            },
-          });
-        }
-      }
-    } else {
-      return await ctx.reply("Заповніть анкету знову", {
-        reply_markup: {
-          keyboard: [[{ text: "🔄 Заповнити анкету знову" }]],
-          resize_keyboard: true,
-        },
-      });
-    }
-  }
+  await myProfile(ctx);
 });
 
 bot.hears("⬅️ Назад", async (ctx) => {
-  await ctx.reply("👤 Мій профіль", {
-    reply_markup: {
-      keyboard: [
-        [{ text: "👤 Мій профіль" }, { text: "👀 Дивитись анкети" }],
-        [
-          { text: "💰 Реферальне посилання" },
-          { text: "🔄 Заповнити анкету знову" },
-        ],
-        [{ text: "🐣 Зв'язок з розробником" }],
-        [
-          {
-            text: "🌐 Відкрити сайт",
-            web_app: { url: "https://enjoyhub.space" },
-          },
-        ],
-      ],
-      resize_keyboard: true,
-    },
-  });
+  await goBack(ctx);
 });
-// bot.hears("👨‍👩‍👧‍👦 Мої реферали", async (ctx) => {
-//   const message = `👥 Мої Реферали - У Розробці
 
-//   Ми вже працюємо над впровадженням функціоналу "Мої Реферали", який дозволить вам бачити та керувати своїм реферальним командуванням. З цим інноваційним інструментом ви зможете:
-
-//   📊 Відстежувати Динаміку: Переглядайте статистику та ефективність вашої реферальної команди.
-
-//   🌐 Розширюйте Мережу: Запрошуйте нових користувачів та отримуйте бонуси за кожного нового учасника.
-
-//   🎉 Спеціальні Переваги: Отримуйте ексклюзивні привілеї та бонуси за досягнення певних мильників.
-
-//   Залишайтеся з нами, і найближчим часом ви зможете насолоджуватися усіма перевагами "Моїх Рефералів"! 👥✨`;
-//   await ctx.reply(message, {
-//     reply_markup: {
-//       keyboard: [[{ text: "⬅️ Назад" }]],
-//       resize_keyboard: true,
-//     },
-//   });
-// });
 bot.hears("⚙ Налаштування", async (ctx) => {
-  await ctx.reply("⚙ Налаштування", {
-    reply_markup: {
-      keyboard: [
-        [{ text: "🔸Змінити ім'я" }, { text: "🔸Змінити вік" }],
-        [{ text: "🔸Змінити інфо про себе" }],
-        [{ text: "⬅️ Назад" }],
-      ],
-      resize_keyboard: true,
-    },
-  });
+  await mySettings(ctx);
 });
 
 bot.hears("🌟 Premium", async (ctx) => {
-  const message = `
-  🌟 Premium Access
-
-Отримайте доступ до ексклюзивних можливостей та переваг з нашим преміум планом! Наші передплатники отримують:
-
-🚀 Ранній Доступ: Будьте серед перших, хто випробовує нові функції та оновлення.
-
-🎨 Ексклюзивні Теми: Оформлення та дизайн, доступні лише для підписників преміум-плану.
-
-🤖 Покращені Команди Бота: Нові та потужні команди для зручного використання наших ботів.
-
-📚 Ексклюзивні Віджети: Додайте стиль до свого додатку за допомогою унікальних віджетів для преміум-користувачів.
-
-💬 Пріоритетна Підтримка: Швидка та ефективна підтримка від нашої команди для вас.
-
-Обирайте наш преміум план та розблоковуйте найкращі можливості! 🌟
+  const premiumStatusCheck = await checkPremium(ctx);
+  if (premiumStatusCheck) {
+    const message = `
+  Ваш преміум кабінет
   `;
-  await ctx.reply(message, {
-    reply_markup: {
-      keyboard: [[{ text: "Купити 🌟 Premium " }], [{ text: "⬅️ Назад" }]],
-      resize_keyboard: true,
-    },
-  });
-});
-
-bot.hears("👤 Мій профіль", async (ctx) => {
-  const myAcc = await pool.query(`
-  SELECT a.*, b.photo_url,b.type
-  FROM users_info AS a
-  LEFT JOIN users_photos AS b ON a.user_id = b.user_id
-  WHERE a.user_id = ${ctx.message.from.id};
-  `);
-  const user = ctx.message.from;
-  await createUser(user);
-  const me = myAcc.rows[0];
-  const banUser = await pool.query(
-    `select * from users where tg_id = ${ctx.message.from.id}`
-  );
-  if (banUser.rows[0].is_ban === 1) {
-    await ctx.reply("Ви забанені", {
+    await ctx.reply(message, {
       reply_markup: {
-        keyboard: [[{ text: "Ви були забанені адміністратором" }]],
+        keyboard: [
+          [{ text: "Інформація про ваш🌟 Premium" }],
+          [{ text: "⬅️ Назад" }],
+        ],
+        resize_keyboard: true,
       },
     });
   } else {
-    if (me) {
-      const message = `👤Ім'я: ${me?.name}\n\n🕐Вік: ${me?.age}\n\n💁Інфа: ${me?.text}`;
-      if (me.photo_url) {
-        if (me?.type === "photo") {
-          await ctx.replyWithPhoto(
-            {
-              url: me?.photo_url,
-            },
-            {
-              caption: message,
-              reply_markup: {
-                keyboard: [
-                  [{ text: "⚙ Налаштування" }],
-                  [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-                  [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
-                  [{ text: "⬅️ Назад" }],
-                ],
-                resize_keyboard: true,
-              },
-            }
-          );
-        } else {
-          await ctx.replyWithVideo(
-            {
-              url: me?.photo_url,
-            },
-            {
-              caption: message,
-              reply_markup: {
-                keyboard: [
-                  [{ text: "⚙ Налаштування" }],
-                  [{ text: "🌟 Premium" }, { text: "💌 Мої вподобайки" }],
-                  [{ text: "👨‍👩‍👧‍👦 Мої реферали" }, { text: "Залишок ❤️" }],
-                  [{ text: "⬅️ Назад" }],
-                ],
-                resize_keyboard: true,
-              },
-            }
-          );
-        }
-      } else {
-        return await ctx.reply("Заповніть анкету знову", {
-          reply_markup: {
-            keyboard: [[{ text: "🔄 Заповнити анкету знову" }]],
-            resize_keyboard: true,
-          },
-        });
-      }
-    } else {
-      return await ctx.reply("Заповніть анкету знову", {
-        reply_markup: {
-          keyboard: [[{ text: "🔄 Заповнити анкету знову" }]],
-          resize_keyboard: true,
-        },
-      });
-    }
+    await ctx.reply(PREMIUM_MESSAGE, {
+      reply_markup: {
+        keyboard: [[{ text: "Купити 🌟 Premium " }], [{ text: "⬅️ Назад" }]],
+        resize_keyboard: true,
+      },
+    });
   }
+});
+
+bot.hears("Інформація про ваш🌟 Premium", async (ctx) => {
+  await myPremiumCommand(ctx);
+});
+
+bot.hears("👤 Мій профіль", async (ctx) => {
+  myProfile(ctx);
 });
 bot.hears(`🐣 Зв'язок з розробником`, async (ctx) => {
   ctx.reply("@web_developer_Ukraine");
@@ -731,17 +543,6 @@ bot.hears(`✔️`, async (ctx) => {
     },
   });
 });
-// bot.hears(`🌐 Відкрити сайт`, async (ctx) => {
-//   ctx.reply("Наш веб сайт", {
-//     reply_markup: {
-//       keyboard: [
-//         [{ text: "SITE", web_app: { url: "https://enjoyhub.space" } }],
-//         [{ text: "✔️" }],
-//       ],
-//       resize_keyboard: true,
-//     },
-//   });
-// });
 bot.hears(`Купити 🌟 Premium`, async (ctx) => {
   ctx.reply(
     "Натисніть для перегляду тарифних планів",
@@ -826,24 +627,7 @@ bot.action("tarif_4", async (ctx) => {
   });
 });
 
-//
 
-// const sendMessageToUsers = async ()=>{
-//   try {
-//     const result = await pool.query(`select * from users`);
-//     for (let i = 0; i < result.rows.length; i++) {
-//     const el = result.rows[i];
-//     console.log(el.tg_id);
-//     bot.telegram.sendMessage(el.tg_id,'Ми перїхали: @EnjoyHubBot')
-//     // ctx.sendMessage('Додав нову фічуууууу.Сайт який відкривається прям в БОТІ....Гиии )',{chat_id:el.tg_id})
-//   }
-//   } catch (error) {
-//     console.log(error);
-//   }
-// }
-// sendMessageToUsers()
-
-// SCENES ENTER
 
 bot.hears("🔄 Заповнити анкету знову", async (ctx) => {
   ctx.scene.enter("registrationScene");
@@ -1155,72 +939,33 @@ where user_id2 = ${ctx.message.from.id} and is_show = 0`);
 });
 
 bot.hears("👨‍👩‍👧‍👦 Мої реферали", async (ctx) => {
-  const result = await pool.query(`
-SELECT
-    u.tg_id,
-    u.username,
-    ARRAY(
-        SELECT c.username
-        FROM referrals r
-        JOIN users c ON r.referrer_id = c.tg_id
-        WHERE r.referee_id = ${ctx.message.from.id}
-    ) AS children
-FROM
-    users u
-WHERE ARRAY_LENGTH(
-        ARRAY(
-            SELECT  r.referrer_id
-            FROM referrals r
-            WHERE r.referee_id = u.tg_id
-        ), 1) IS NOT NULL
-`);
-  console.log(result.rows);
-  let message = "";
-  const mappedReferals = result.rows[0]?.children?.map((item, idx) => {
-    message += `${idx + 1} - @${item}\n`;
-  });
-
-  if (result.rows[0]?.children?.length > 0) {
-    await ctx.reply(`Список ваших рефералів:\n${message}`);
-  } else if (result.rows[0]?.children?.length > 199) {
-    await ctx.reply(
-      `Список ваших рефералів:\nУ вас понад 200+ рефералів.Ми фізично не можемо вивести даний список.Ви зможете переглянути усіх рефералів на сайті.`
-    );
-  } else {
-    await ctx.replyWithHTML(
-      `У вас поки що немає рефералів.\nНадішліть ваше персональне посилання для того щоб запросити друзів та отримайте бонуси 🎁\n\n<code>https://t.me/EnjoyHubBot?start=${ctx.message.from.id}</code>`,
-      { parse_mode: "HTML" }
-    );
-  }
+  myReferals(ctx);
 });
 
+bot.hears("lk", async (ctx) => {
+  // Отримайте поточну дату
+  const currentDate = moment();
 
-bot.hears('lk', async ctx =>{
-// Отримайте поточну дату
-const currentDate = moment();
+  // Додайте 1 місяць до поточної дати
+  const newDate = currentDate.clone().add(1, "months");
 
-// Додайте 1 місяць до поточної дати
-const newDate = currentDate.clone().add(1, 'months');
-
-// Форматуйте нову дату в рядок для використання в запиті SQL
-const formattedDate = newDate.format('YYYY-MM-DDTHH:mm:ss.SSSZ');
-const getData = await pool.query(`select premium_end from users where tg_id = 282039969`)
-console.log(moment(getData.rows[0].premium_end).format('l'));
-  
-//  const insertDatePremium = await pool.query(`update users set premium_end = '${formattedDate}' where tg_id = ${282039969} and premium_end is null`)
-
-})
+  // Форматуйте нову дату в рядок для використання в запиті SQL
+  const formattedDate = newDate.format("YYYY-MM-DDTHH:mm:ss.SSSZ");
+  const getData = await pool.query(
+    `select premium_end from users where tg_id = 282039969`
+  );
+  console.log(moment(getData.rows[0].premium_end).format("LLL"));
+});
 
 // ЗАПЛАНОВАНІ ПОДІЇ
 updateLikesForEveryUser(bot);
 // ЗАПЛАНОВАНІ ПОДІЇ
-// SCENES ENTER
+
+// BOT START
 bot.launch();
 process.once("SIGINT", () => bot.stop("SIGINT"));
 process.once("SIGTERM", () => bot.stop("SIGTERM"));
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
-module.exports = {
-  bot,
-};
+

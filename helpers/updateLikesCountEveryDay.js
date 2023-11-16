@@ -15,7 +15,7 @@ const updateLikesForEveryUser = (bot) => {
               WHERE tg_id = $2;
             `;
 
-        const likesPerDay = user.is_premium ? 9999999 : 25;
+        const likesPerDay = user.is_premium ? 99999999 : 25;
         await pool.query(updateLikesQuery, [likesPerDay, user.tg_id]);
         await bot.telegram.sendMessage(
           user.tg_id,

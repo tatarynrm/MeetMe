@@ -228,7 +228,7 @@ const registrationScene = new Scenes.WizardScene(
         }
         fs.mkdirSync(folderPath);
         let imageId = ctx.message.photo.pop().file_id;
-        ctx.telegram.getFileLink(imageId).then((link) => {
+       await ctx.telegram.getFileLink(imageId).then((link) => {
           https.get(link, (response) => {
             const filePath = path.join(
               folderPath,
