@@ -6,12 +6,14 @@ const myProfile = async (ctx)=>{
         const user = ctx.message.from;
   await createUser(user);
   const myAcc = await pool.query(`
-  SELECT a.*, b.photo_url,b.type
+  SELECT a.*, b.photo_url,b.type,c.created_at
   FROM users_info AS a
   LEFT JOIN users_photos AS b ON a.user_id = b.user_id
+  LEFT JOIN users AS c ON a.user_id = c.tg_id
   WHERE a.user_id = ${ctx.message.from.id};
   `);
   const me = myAcc.rows[0];
+  console.log(me);
   const banUser = await pool.query(
     `select * from users where tg_id = ${ctx.message.from.id}`
   );
@@ -26,7 +28,7 @@ const myProfile = async (ctx)=>{
       await ctx.reply(
         `Ти ${
           me?.sex === "M" ? "приєднався" : "приєдналась"
-        } до нас\n📅${moment(me?.created_at).format("LLL")} год.`
+        } до нас\n📅${moment(me?.created_at).format("LLLL")} год.`
       );
       if (me === undefined || me === null || me.type === null) {
         await ctx.reply(
