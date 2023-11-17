@@ -465,7 +465,7 @@ bot.hears("👎", async (ctx) => {
 });
 
 bot.hears("💰 Реферальне посилання", async (ctx) => {
-  const photoPath = path.join(__dirname, "static_files", "referal.jpg");
+  const photoPath = path.join(__dirname, "static_files", "referal.png");
   await ctx.replyWithPhoto(
     { source: photoPath },
     {
